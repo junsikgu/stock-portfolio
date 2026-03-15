@@ -72,7 +72,9 @@ export default function SearchPage() {
     try {
       const res = await fetch(`/api/stocks/quote?symbol=${r.symbol}`)
       const data = await res.json()
-      setSelectedStock(data)
+      // API가 symbol을 이름으로 반환하면 검색 결과의 이름 사용 (한국 종목 등)
+      const name = (data.name && data.name !== r.symbol) ? data.name : r.name
+      setSelectedStock({ ...data, name })
       const currency = data.currency || 'USD'
       setAvgPrice(currency === 'KRW' ? String(Math.round(data.price || 0)) : (data.price?.toFixed(2) || ''))
     } catch {

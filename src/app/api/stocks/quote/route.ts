@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const quote = await yahooFinance.quote(symbol.toUpperCase(), {}, { validateResult: false }) as any
     return NextResponse.json({
       symbol: quote.symbol,
-      name: quote.longName || quote.shortName || symbol,
+      name: quote.longName || quote.shortName || quote.displayName || symbol,
       price: quote.regularMarketPrice,
       change: quote.regularMarketChange,
       changePercent: quote.regularMarketChangePercent,

@@ -31,6 +31,10 @@ interface Props {
   initialHoldings: PortfolioHolding[]
 }
 
+function isKrwStock(symbol: string) {
+  return symbol.endsWith('.KS') || symbol.endsWith('.KQ') || symbol.endsWith('.KS')
+}
+
 export default function PortfolioClient({ initialHoldings }: Props) {
   const [holdings, setHoldings] = useState<PortfolioHolding[]>(initialHoldings)
   const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
@@ -39,6 +43,8 @@ export default function PortfolioClient({ initialHoldings }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
   const [addForm, setAddForm] = useState({ symbol: '', name: '', quantity: '', avg_price: '' })
   const [adding, setAdding] = useState(false)
+  const [showKRW, setShowKRW] = useState(false)
+  const [usdKrw, setUsdKrw] = useState<number>(1350)
 
   // 편집 상태
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -50,6 +56,15 @@ export default function PortfolioClient({ initialHoldings }: Props) {
 
   const supabase = createClient()
 
+  // 환율 fetch (USD/KRW)
+  useEffect(() => {
+    fetch('/api/stocks/quote?symbol=KRW%3DX')
+      .then(r => r.json())
+      .then(d => { if (d.price && d.price > 100) setUsdKrw(d.price) })
+      .catch(() => {})
+  }, [])
+
+  // 시세 fetch
   useEffect(() => {
     if (holdings.length === 0) return
     const symbols = [...new Set(holdings.map(h => h.symbol))]
@@ -62,6 +77,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
     })
   }, [holdings])
 
+  // AI 분석 자동 fetch
   useEffect(() => {
     if (holdings.length === 0) return
     const symbols = [...new Set(holdings.map(h => h.symbol))]
@@ -75,6 +91,25 @@ export default function PortfolioClient({ initialHoldings }: Props) {
       } catch {}
     })
   }, [holdings])
+
+  // 가격 포맷 (USD or KRW 환산)
+  function fmtAmt(usdAmount: number, isKrw = false): string {
+    if (showKRW) {
+      const krw = isKrw ? usdAmount : usdAmount * usdKrw
+      return '₩' + Math.round(krw).toLocaleString()
+    }
+    return '$' + usdAmount.toFixed(isKrw ? 0 : 2)
+  }
+
+  function fmtPrice(price: number, symbol: string): string {
+    const krw = isKrwStock(symbol)
+    if (showKRW) {
+      const krwVal = krw ? price : price * usdKrw
+      return '₩' + Math.round(krwVal).toLocaleString()
+    }
+    if (krw) return '₩' + Math.round(price).toLocaleString()
+    return '$' + price.toFixed(2)
+  }
 
   async function handleAdd() {
     if (!addForm.symbol || !addForm.quantity || !addForm.avg_price) return
@@ -151,16 +186,31 @@ export default function PortfolioClient({ initialHoldings }: Props) {
     return Math.round(pct)
   }
 
-  const totalCost = holdings.reduce((sum, h) => sum + h.avg_price * h.quantity, 0)
+  // 합계 계산 (KRW 모드에서는 원화로 통일)
+  const totalCost = holdings.reduce((sum, h) => {
+    const krw = isKrwStock(h.symbol)
+    const usdVal = krw ? h.avg_price / usdKrw : h.avg_price
+    return sum + usdVal * h.quantity
+  }, 0)
+
   const totalCurrentValue = holdings.reduce((sum, h) => {
     const q = quotes[h.symbol]
-    return sum + (q ? q.price * h.quantity : h.avg_price * h.quantity)
+    const price = q ? q.price : h.avg_price
+    const krw = isKrwStock(h.symbol)
+    const usdVal = krw ? price / usdKrw : price
+    return sum + usdVal * h.quantity
   }, 0)
+
   const totalPnl = totalCurrentValue - totalCost
   const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
 
   const aiScores = holdings.map(h => analyses[h.symbol]?.score).filter((s): s is number => s != null)
   const portfolioScore = aiScores.length > 0 ? Math.round(aiScores.reduce((a, b) => a + b, 0) / aiScores.length) : null
+
+  function fmtTotal(usdVal: number) {
+    if (showKRW) return '₩' + Math.round(usdVal * usdKrw).toLocaleString()
+    return '$' + usdVal.toFixed(0)
+  }
 
   function getScoreColor(score: number) {
     if (score >= 60) return 'text-green-600'
@@ -181,12 +231,26 @@ export default function PortfolioClient({ initialHoldings }: Props) {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">내 포트폴리오</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">보유 종목의 수익률을 추적하세요</p>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + 종목 추가
-        </button>
+        <div className="flex items-center gap-2">
+          {/* 환율 토글 */}
+          <button
+            onClick={() => setShowKRW(v => !v)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+              showKRW
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-400'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+            }`}
+            title={showKRW ? `1 USD = ₩${Math.round(usdKrw).toLocaleString()}` : '원화로 보기'}
+          >
+            {showKRW ? `₩ 원화 (${Math.round(usdKrw).toLocaleString()})` : '$ → ₩'}
+          </button>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + 종목 추가
+          </button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -194,16 +258,17 @@ export default function PortfolioClient({ initialHoldings }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">총 평가금액</div>
-            <div className="text-xl font-bold text-gray-800 dark:text-gray-100">${totalCurrentValue.toFixed(0)}</div>
+            <div className="text-xl font-bold text-gray-800 dark:text-gray-100">{fmtTotal(totalCurrentValue)}</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">총 투자금액</div>
-            <div className="text-xl font-bold text-gray-800 dark:text-gray-100">${totalCost.toFixed(0)}</div>
+            <div className="text-xl font-bold text-gray-800 dark:text-gray-100">{fmtTotal(totalCost)}</div>
           </div>
           <div className={`rounded-xl p-4 shadow-sm border ${totalPnl >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
             <div className="text-xs text-gray-500 mb-1">총 손익</div>
             <div className={`text-xl font-bold ${totalPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(0)} ({totalPnlPct.toFixed(2)}%)
+              {totalPnl >= 0 ? '+' : ''}{fmtTotal(Math.abs(totalPnl)).replace(/^[₩$]/, (totalPnl >= 0 ? '' : '-') + (showKRW ? '₩' : '$'))}
+              <span className="text-sm font-normal ml-1">({totalPnlPct.toFixed(2)}%)</span>
             </div>
           </div>
           <div className={`rounded-xl p-4 shadow-sm border ${portfolioScore != null ? getScoreBg(portfolioScore) : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
@@ -226,7 +291,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
           <h3 className="font-semibold text-gray-700 dark:text-gray-200">종목 추가</h3>
           <StockSearch
             onSelect={(r) => setAddForm(prev => ({ ...prev, symbol: r.symbol, name: r.name }))}
-            placeholder="종목 검색 (예: AAPL, Tesla)"
+            placeholder="종목 검색 (예: 삼성전자, AAPL, Tesla)"
           />
           {addForm.symbol && (
             <div className="text-sm text-blue-600 font-medium">선택됨: {addForm.symbol} - {addForm.name}</div>
@@ -239,21 +304,20 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                 value={addForm.quantity}
                 onChange={(e) => setAddForm(prev => ({ ...prev, quantity: e.target.value }))}
                 className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0"
-                min="0"
-                step="0.001"
+                placeholder="0" min="0" step="0.001"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">평균매수가 ($)</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                평균매수가 ({isKrwStock(addForm.symbol) ? '₩' : '$'})
+              </label>
               <input
                 type="number"
                 value={addForm.avg_price}
                 onChange={(e) => setAddForm(prev => ({ ...prev, avg_price: e.target.value }))}
                 className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
+                placeholder="0.00" min="0"
+                step={isKrwStock(addForm.symbol) ? '1' : '0.01'}
               />
             </div>
           </div>
@@ -306,8 +370,26 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                   const ai = analyses[h.symbol]
                   const recStyle = ai ? REC_STYLE[ai.recommendation] : null
                   const w52pct = calc52wPct(q)
+                  const krw = isKrwStock(h.symbol)
                   const targetPct = h.target_price && q ? ((h.target_price - q.price) / q.price) * 100 : null
                   const isEditing = editingId === h.id
+
+                  // 표시 가격 계산
+                  const displayPrice = q ? fmtPrice(q.price, h.symbol) : '-'
+                  const displayAvg = krw
+                    ? (showKRW ? '₩' + Math.round(h.avg_price).toLocaleString() : '$' + (h.avg_price / usdKrw).toFixed(2))
+                    : (showKRW ? '₩' + Math.round(h.avg_price * usdKrw).toLocaleString() : '$' + h.avg_price.toFixed(2))
+                  const displayValue = pnlData
+                    ? (krw
+                        ? (showKRW ? '₩' + Math.round(pnlData.currentValue).toLocaleString() : '$' + (pnlData.currentValue / usdKrw).toFixed(0))
+                        : (showKRW ? '₩' + Math.round(pnlData.currentValue * usdKrw).toLocaleString() : '$' + pnlData.currentValue.toFixed(0)))
+                    : '-'
+                  const displayPnl = pnlData
+                    ? (krw
+                        ? (showKRW ? Math.round(pnlData.pnl) : (pnlData.pnl / usdKrw))
+                        : (showKRW ? pnlData.pnl * usdKrw : pnlData.pnl))
+                    : null
+                  const pnlPrefix = showKRW ? '₩' : '$'
 
                   return (
                     <>
@@ -336,7 +418,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{q ? `$${q.price.toFixed(2)}` : '-'}</div>
+                          <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{displayPrice}</div>
                           {q && (
                             <div className={`text-xs ${q.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                               {q.changePercent >= 0 ? '+' : ''}{q.changePercent?.toFixed(2)}%
@@ -359,20 +441,20 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">{h.quantity}</td>
-                        <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">${h.avg_price.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">{displayAvg}</td>
                         <td className="px-4 py-3 text-right">
-                          <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{pnlData ? `$${pnlData.currentValue.toFixed(0)}` : '-'}</div>
+                          <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{displayValue}</div>
                           {h.target_price && q && (
                             <div className={`text-xs ${targetPct != null && targetPct > 0 ? 'text-blue-500' : 'text-gray-400'}`}>
-                              목표 ${h.target_price} ({targetPct != null ? `${targetPct > 0 ? '+' : ''}${targetPct.toFixed(1)}%` : '-'})
+                              목표 {targetPct != null ? `${targetPct > 0 ? '+' : ''}${targetPct.toFixed(1)}%` : '-'}
                             </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {pnlData ? (
+                          {displayPnl != null && pnlData ? (
                             <div>
                               <div className={`text-sm font-medium ${pnlData.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {pnlData.pnl >= 0 ? '+' : ''}{pnlData.pnl.toFixed(0)}
+                                {pnlData.pnl >= 0 ? '+' : ''}{pnlPrefix}{Math.abs(Math.round(displayPnl)).toLocaleString()}
                               </div>
                               <div className={`text-xs ${pnlData.pnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 ({pnlData.pnlPct >= 0 ? '+' : ''}{pnlData.pnlPct.toFixed(2)}%)
@@ -406,61 +488,39 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                             <div className="flex items-center gap-3 flex-wrap">
                               <div className="flex items-center gap-2">
                                 <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">수량</label>
-                                <input
-                                  type="number"
-                                  value={editQuantity}
-                                  onChange={(e) => setEditQuantity(e.target.value)}
+                                <input type="number" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  min="0" step="0.001"
-                                />
+                                  min="0" step="0.001" />
                               </div>
                               <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">평균단가 $</label>
-                                <input
-                                  type="number"
-                                  value={editAvgPrice}
-                                  onChange={(e) => setEditAvgPrice(e.target.value)}
+                                <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">평균단가</label>
+                                <input type="number" value={editAvgPrice} onChange={(e) => setEditAvgPrice(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  min="0" step="0.01"
-                                />
+                                  min="0" step="0.01" />
                               </div>
                               <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">목표가 $</label>
-                                <input
-                                  type="number"
-                                  value={editTarget}
-                                  onChange={(e) => setEditTarget(e.target.value)}
+                                <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">목표가</label>
+                                <input type="number" value={editTarget} onChange={(e) => setEditTarget(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  placeholder="선택" min="0" step="0.01"
-                                />
+                                  placeholder="선택" min="0" step="0.01" />
                               </div>
                               <div className="flex items-center gap-2 flex-1">
                                 <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">메모</label>
-                                <input
-                                  type="text"
-                                  value={editMemo}
-                                  onChange={(e) => setEditMemo(e.target.value)}
+                                <input type="text" value={editMemo} onChange={(e) => setEditMemo(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  placeholder="매수 이유, 목표 등..."
-                                  maxLength={200}
-                                />
+                                  placeholder="매수 이유, 목표 등..." maxLength={200} />
                               </div>
                               <div className="flex gap-2">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); saveEdit(h.id) }}
-                                  disabled={saving}
-                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-3 py-1 rounded text-xs font-medium"
-                                >
+                                <button onClick={(e) => { e.stopPropagation(); saveEdit(h.id) }} disabled={saving}
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-3 py-1 rounded text-xs font-medium">
                                   {saving ? '저장 중...' : '저장'}
                                 </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setEditingId(null) }}
-                                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 px-3 py-1 rounded text-xs font-medium"
-                                >
+                                <button onClick={(e) => { e.stopPropagation(); setEditingId(null) }}
+                                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 px-3 py-1 rounded text-xs font-medium">
                                   취소
                                 </button>
                               </div>
