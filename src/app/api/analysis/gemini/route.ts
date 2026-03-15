@@ -76,11 +76,17 @@ export async function GET(request: NextRequest) {
       : fearGreed < 75 ? `${fearGreed} (탐욕)`
       : `${fearGreed} (극탐욕)`
 
+    // 매수 비율 계산
+    const buyRatio = totalAnalysts > 0
+      ? Math.round(((analyst!.strongBuy + analyst!.buy) / totalAnalysts) * 100)
+      : null
+    const upsideNum = upside != null ? Number(upside) : null
+
     const lines = [
       `- 현재가: ${currency}${price.toLocaleString()}`,
       `- 52주 고점: ${currency}${high52.toLocaleString()} / 저점: ${currency}${low52.toLocaleString()}${position52 != null ? ` → 현재 52주 범위의 ${position52}% 위치` : ''}`,
-      analyst && totalAnalysts > 0 ? `- 애널리스트 의견 (${totalAnalysts}명): 적극매수 ${analyst.strongBuy}명, 매수 ${analyst.buy}명, 보유 ${analyst.hold}명, 매도 ${analyst.sell}명, 적극매도 ${analyst.strongSell}명` : null,
-      analyst?.targetPrice ? `- 목표주가: ${currency}${Number(analyst.targetPrice).toLocaleString()}${upside ? ` (현재가 대비 ${Number(upside) > 0 ? '+' : ''}${upside}%)` : ''}` : null,
+      analyst && totalAnalysts > 0 ? `- 애널리스트 의견 (${totalAnalysts}명): 적극매수 ${analyst.strongBuy}명, 매수 ${analyst.buy}명, 보유 ${analyst.hold}명, 매도 ${analyst.sell}명, 적극매도 ${analyst.strongSell}명${buyRatio != null ? ` (매수 의견 비율 ${buyRatio}%)` : ''}` : null,
+      analyst?.targetPrice ? `- 목표주가: ${currency}${Number(analyst.targetPrice).toLocaleString()}${upside ? ` (현재가 대비 ${upsideNum! > 0 ? '+' : ''}${upside}% 상승여력)` : ''}` : null,
       pe ? `- PER: ${pe.toFixed(1)}배` : null,
       fearLabel ? `- 공포탐욕지수: ${fearLabel}` : null,
     ].filter(Boolean).join('\n')
@@ -90,18 +96,22 @@ export async function GET(request: NextRequest) {
 [지표]
 ${lines}
 
+[판단 기준 — 반드시 준수]
+- 목표주가 상승여력 10% 미만이면 매수 추천 금지, 관망 또는 매도로 판단
+- 애널리스트 매수 의견 비율 50% 미만이면 관망 또는 매도로 판단
+- 52주 고점 대비 현재가가 90% 이상이면 과매수 위험 언급
+- 공포탐욕지수 없으면 PER·52주 위치로 시장 심리를 대신 해석
+- 긍정적 근거와 부정적 근거를 반드시 함께 제시할 것 (일방적 낙관 금지)
+
 [작성 규칙]
-- 전체 3개 문단, 각 문단 3줄 이내
-- 반복 표현 금지, 핵심 근거만 간결하게
-- 마크다운 기호 사용 금지
-- 공포탐욕지수 데이터가 없으면 PER·52주 위치·거래량 등 다른 지표로 시장 심리를 해석할 것
-- 마지막 줄은 반드시 아래 형식으로 끝낼 것:
-  종합의견: [매수 / 관망 / 매도 중 하나만 선택]
+- 전체 3개 문단, 각 문단 3줄 이내, 핵심만 간결하게
+- 반복 표현 금지, 마크다운 기호 사용 금지
+- 마지막 줄은 반드시: 종합의견: [매수 / 관망 / 매도 중 하나]
 
 [문단 구성]
-1문단: 52주 가격 위치 기반 기술적 평가
-2문단: 애널리스트 컨센서스·목표주가 기반 수익성 판단
-3문단: 리스크 요인과 투자 결론 + 종합의견`
+1문단: 52주 가격 위치 기반 기술적 평가 (긍정·부정 모두 포함)
+2문단: 애널리스트 컨센서스·목표주가 상승여력 기반 수익성 판단
+3문단: 리스크 요인과 최종 투자 결론 + 종합의견`
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
