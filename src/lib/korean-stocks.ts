@@ -88,23 +88,87 @@ export const KOREAN_STOCK_DICT: Array<{
   { keywords: ['JYP', 'JYP엔터'], symbol: '035900.KQ', name: 'JYP Ent.', exchange: 'KOSDAQ' },
   { keywords: ['YG엔터', 'YG엔터테인먼트'], symbol: '122870.KQ', name: 'YG PLUS', exchange: 'KOSDAQ' },
 
-  // ETF
+  // 미국 ETF
   { keywords: ['SPY', 'S&P500', 'S&P 500', 'SP500'], symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'NYSE Arca' },
   { keywords: ['QQQ', '나스닥100', '나스닥ETF'], symbol: 'QQQ', name: 'Invesco QQQ Trust', exchange: 'NASDAQ' },
   { keywords: ['VOO', '뱅가드'], symbol: 'VOO', name: 'Vanguard S&P 500 ETF', exchange: 'NYSE Arca' },
   { keywords: ['SOXL', '반도체레버리지'], symbol: 'SOXL', name: 'Direxion Daily Semiconductor Bull 3X', exchange: 'NYSE Arca' },
   { keywords: ['TQQQ', '나스닥레버리지'], symbol: 'TQQQ', name: 'ProShares UltraPro QQQ', exchange: 'NASDAQ' },
-  { keywords: ['SCHD', '배당ETF'], symbol: 'SCHD', name: 'Schwab U.S. Dividend Equity ETF', exchange: 'NYSE Arca' },
-  { keywords: ['금ETF', 'GLD'], symbol: 'GLD', name: 'SPDR Gold Shares', exchange: 'NYSE Arca' },
+  { keywords: ['SCHD', '배당ETF', '슈왑배당'], symbol: 'SCHD', name: 'Schwab U.S. Dividend Equity ETF', exchange: 'NYSE Arca' },
+  { keywords: ['GLD', '금ETF'], symbol: 'GLD', name: 'SPDR Gold Shares', exchange: 'NYSE Arca' },
+  { keywords: ['VTI', '전체시장'], symbol: 'VTI', name: 'Vanguard Total Stock Market ETF', exchange: 'NYSE Arca' },
+  { keywords: ['IVV'], symbol: 'IVV', name: 'iShares Core S&P 500 ETF', exchange: 'NYSE Arca' },
+  { keywords: ['JEPI', '커버드콜배당'], symbol: 'JEPI', name: 'JPMorgan Equity Premium Income ETF', exchange: 'NYSE Arca' },
+  { keywords: ['JEPQ'], symbol: 'JEPQ', name: 'JPMorgan Nasdaq Equity Premium Income ETF', exchange: 'NASDAQ' },
+  { keywords: ['QQQM'], symbol: 'QQQM', name: 'Invesco NASDAQ 100 ETF', exchange: 'NASDAQ' },
+  { keywords: ['SOXS', '반도체인버스'], symbol: 'SOXS', name: 'Direxion Daily Semiconductor Bear 3X', exchange: 'NYSE Arca' },
+  { keywords: ['ARKK', '아크', '혁신ETF'], symbol: 'ARKK', name: 'ARK Innovation ETF', exchange: 'NYSE Arca' },
+
+  // ─── KODEX (삼성자산운용) ───────────────────────────────────────
+  { keywords: ['KODEX 200', 'KODEX200', '코덱스200'], symbol: '069500.KS', name: 'KODEX 200', exchange: 'KRX' },
+  { keywords: ['KODEX 레버리지', 'KODEX레버리지', '코스피레버리지'], symbol: '122630.KS', name: 'KODEX 레버리지', exchange: 'KRX' },
+  { keywords: ['KODEX 인버스', 'KODEX인버스', '코스피인버스'], symbol: '114800.KS', name: 'KODEX 인버스', exchange: 'KRX' },
+  { keywords: ['KODEX 반도체', 'KODEX반도체'], symbol: '091160.KS', name: 'KODEX 반도체', exchange: 'KRX' },
+  { keywords: ['KODEX 코스닥150', 'KODEX코스닥150'], symbol: '229200.KQ', name: 'KODEX 코스닥150', exchange: 'KRX' },
+  { keywords: ['KODEX 2차전지', 'KODEX2차전지', '2차전지ETF', '배터리ETF'], symbol: '305720.KS', name: 'KODEX 2차전지산업', exchange: 'KRX' },
+  { keywords: ['KODEX 미국S&P500', 'KODEX미국SP500', 'KODEX SP500'], symbol: '379800.KS', name: 'KODEX 미국S&P500TR', exchange: 'KRX' },
+  { keywords: ['KODEX 나스닥100', 'KODEX나스닥100', 'KODEX나스닥'], symbol: '368590.KS', name: 'KODEX 미국나스닥100TR', exchange: 'KRX' },
+  { keywords: ['KODEX 미국배당', 'KODEX배당다우존스'], symbol: '458760.KS', name: 'KODEX 미국배당다우존스', exchange: 'KRX' },
+  { keywords: ['KODEX 골드', 'KODEX금', '코덱스금'], symbol: '132030.KS', name: 'KODEX 골드선물(H)', exchange: 'KRX' },
+  { keywords: ['KODEX 은행', '은행ETF'], symbol: '091170.KS', name: 'KODEX 은행', exchange: 'KRX' },
+  { keywords: ['KODEX 에너지화학', '에너지화학ETF'], symbol: '117460.KS', name: 'KODEX 에너지화학', exchange: 'KRX' },
+  { keywords: ['KODEX 헬스케어', '헬스케어ETF'], symbol: '266410.KS', name: 'KODEX 헬스케어', exchange: 'KRX' },
+  { keywords: ['KODEX 미국테크TOP10', 'KODEX테크TOP10'], symbol: '381170.KS', name: 'KODEX 미국테크TOP10 INDXX', exchange: 'KRX' },
+
+  // ─── TIGER (미래에셋자산운용) ───────────────────────────────────
+  { keywords: ['TIGER 200', 'TIGER200', '타이거200'], symbol: '102110.KS', name: 'TIGER 200', exchange: 'KRX' },
+  { keywords: ['TIGER 미국S&P500', 'TIGER미국SP500', 'TIGER SP500'], symbol: '360750.KS', name: 'TIGER 미국S&P500', exchange: 'KRX' },
+  { keywords: ['TIGER 나스닥100', 'TIGER나스닥100', 'TIGER나스닥'], symbol: '133690.KS', name: 'TIGER 미국나스닥100', exchange: 'KRX' },
+  { keywords: ['TIGER 미국배당다우존스', 'TIGER배당다우존스', '타이거배당다우존스'], symbol: '458730.KS', name: 'TIGER 미국배당다우존스', exchange: 'KRX' },
+  { keywords: ['TIGER 차이나CSI', 'TIGER중국CSI'], symbol: '192090.KS', name: 'TIGER 차이나CSI300', exchange: 'KRX' },
+  { keywords: ['TIGER 레버리지', 'TIGER레버리지'], symbol: '123320.KS', name: 'TIGER 레버리지', exchange: 'KRX' },
+  { keywords: ['TIGER 인버스', 'TIGER인버스'], symbol: '143460.KS', name: 'TIGER 인버스', exchange: 'KRX' },
+  { keywords: ['TIGER 반도체', 'TIGER반도체'], symbol: '091230.KS', name: 'TIGER 반도체', exchange: 'KRX' },
+  { keywords: ['TIGER 코스닥150', 'TIGER코스닥150'], symbol: '232080.KQ', name: 'TIGER 코스닥150', exchange: 'KRX' },
+  { keywords: ['TIGER MSCI Korea', 'TIGER MSCI', 'TIGER코리아'], symbol: '195970.KS', name: 'TIGER MSCI Korea TR', exchange: 'KRX' },
+  { keywords: ['TIGER 글로벌리츠', 'TIGER리츠', '리츠ETF'], symbol: '182480.KS', name: 'TIGER 부동산인프라고배당', exchange: 'KRX' },
+  { keywords: ['TIGER 미국테크TOP10', 'TIGER테크TOP10'], symbol: '381180.KS', name: 'TIGER 미국테크TOP10 INDXX', exchange: 'KRX' },
+
+  // ─── SOL (신한자산운용) ─────────────────────────────────────────
+  { keywords: ['SOL 미국배당다우존스', 'SOL배당다우존스', 'SOL미국배당', '솔배당다우존스'], symbol: '446720.KS', name: 'SOL 미국배당다우존스', exchange: 'KRX' },
+  { keywords: ['SOL 미국S&P500', 'SOL미국SP500', 'SOL SP500'], symbol: '448290.KS', name: 'SOL 미국S&P500', exchange: 'KRX' },
+  { keywords: ['SOL 미국나스닥100', 'SOL나스닥100', 'SOL나스닥'], symbol: '449170.KS', name: 'SOL 미국나스닥100', exchange: 'KRX' },
+  { keywords: ['SOL 200', 'SOL200'], symbol: '410870.KS', name: 'SOL 코스피200', exchange: 'KRX' },
+
+  // ─── ACE (한국투자신탁운용) ────────────────────────────────────
+  { keywords: ['ACE 미국S&P500', 'ACE미국SP500', 'ACE SP500'], symbol: '360200.KS', name: 'ACE 미국S&P500', exchange: 'KRX' },
+  { keywords: ['ACE 미국나스닥100', 'ACE나스닥100', 'ACE나스닥'], symbol: '367380.KS', name: 'ACE 미국나스닥100', exchange: 'KRX' },
+  { keywords: ['ACE 미국배당다우존스', 'ACE배당다우존스'], symbol: '402970.KS', name: 'ACE 미국배당다우존스', exchange: 'KRX' },
+  { keywords: ['ACE 200', 'ACE200'], symbol: '271560.KS', name: 'ACE 코스피200', exchange: 'KRX' },
+
+  // ─── KBSTAR (KB자산운용) ───────────────────────────────────────
+  { keywords: ['KBSTAR 미국S&P500', 'KBSTAR미국SP500', 'KBSTAR SP500'], symbol: '379800.KS', name: 'KBSTAR 미국S&P500', exchange: 'KRX' },
+  { keywords: ['KBSTAR 200', 'KBSTAR200'], symbol: '237350.KS', name: 'KBSTAR 200', exchange: 'KRX' },
+  { keywords: ['KBSTAR 미국배당', 'KBSTAR배당'], symbol: '458920.KS', name: 'KBSTAR 미국배당다우존스', exchange: 'KRX' },
+
+  // ─── HANARO (NH아문디) / ARIRANG (한화자산운용) ────────────────
+  { keywords: ['HANARO 미국S&P500', 'HANARO SP500', '하나로SP500'], symbol: '367470.KS', name: 'HANARO 미국S&P500', exchange: 'KRX' },
+  { keywords: ['ARIRANG 미국S&P500', 'ARIRANG SP500', '아리랑SP500'], symbol: '269420.KS', name: 'ARIRANG 미국S&P500', exchange: 'KRX' },
 ]
 
 export function searchKorean(query: string) {
-  const q = query.trim()
+  const q = query.trim().toLowerCase().replace(/\s+/g, '')
   if (!q) return []
 
-  return KOREAN_STOCK_DICT.filter(item =>
-    item.keywords.some(kw => kw.includes(q) || q.includes(kw))
-  ).slice(0, 8).map(item => ({
+  // 정규화: 띄어쓰기 제거 후 비교
+  return KOREAN_STOCK_DICT.filter(item => {
+    const nameNorm = item.name.toLowerCase().replace(/\s+/g, '')
+    if (nameNorm.includes(q) || q.includes(nameNorm.slice(0, 4))) return true
+    return item.keywords.some(kw => {
+      const kwNorm = kw.toLowerCase().replace(/\s+/g, '')
+      return kwNorm.includes(q) || q.includes(kwNorm) || nameNorm.includes(q)
+    })
+  }).slice(0, 8).map(item => ({
     symbol: item.symbol,
     name: item.name,
     exchange: item.exchange,
