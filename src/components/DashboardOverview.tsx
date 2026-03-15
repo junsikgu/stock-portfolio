@@ -41,6 +41,10 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
   const [loaded, setLoaded] = useState(0)
   const [total, setTotal] = useState(0)
 
+  const [portfolioAnalysis, setPortfolioAnalysis] = useState('')
+  const [portfolioAnalysisLoading, setPortfolioAnalysisLoading] = useState(false)
+  const [analysisRequested, setAnalysisRequested] = useState(false)
+
   useEffect(() => {
     if (holdings.length === 0) return
     const symbols = [...new Set(holdings.map(h => h.symbol))]
@@ -62,6 +66,31 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
       setLoaded(prev => prev + 1)
     })
   }, [holdings])
+
+  // 종목 분석이 모두 완료되면 포트폴리오 종합 AI 분석 요청
+  useEffect(() => {
+    if (holdings.length === 0 || analysisRequested) return
+    const symbols = [...new Set(holdings.map(h => h.symbol))]
+    const allAnalysesDone = symbols.every(s => analyses[s] != null)
+    const allQuotesDone = symbols.every(s => quotes[s] != null)
+    if (!allAnalysesDone || !allQuotesDone) return
+
+    setAnalysisRequested(true)
+    setPortfolioAnalysisLoading(true)
+    fetch('/api/analysis/portfolio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        holdings: holdings.map(h => ({ symbol: h.symbol, name: h.name, quantity: h.quantity, avg_price: h.avg_price })),
+        quotes,
+        analyses,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.analysis) setPortfolioAnalysis(d.analysis) })
+      .catch(() => {})
+      .finally(() => setPortfolioAnalysisLoading(false))
+  }, [analyses, quotes, holdings, analysisRequested])
 
   if (holdings.length === 0) {
     return (
@@ -144,6 +173,46 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
               className="h-full bg-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${loadPct}%` }}
             />
+          </div>
+        )}
+
+        {/* 포트폴리오 AI 종합 의견 */}
+        {(portfolioAnalysisLoading || portfolioAnalysis) && (
+          <div className="mt-4 pt-4 border-t border-white/30 dark:border-gray-700/50">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-xs font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded">Groq</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">포트폴리오 종합 의견</span>
+            </div>
+            {portfolioAnalysisLoading ? (
+              <div className="space-y-2">
+                <div className="h-3 bg-white/50 dark:bg-gray-700 animate-pulse rounded w-full" />
+                <div className="h-3 bg-white/50 dark:bg-gray-700 animate-pulse rounded w-4/5" />
+                <div className="h-3 bg-white/50 dark:bg-gray-700 animate-pulse rounded w-2/3" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {portfolioAnalysis.split('\n').filter(p => p.trim()).map((line, i) => {
+                  const isConclusion = line.startsWith('종합의견:')
+                  const isBuy  = isConclusion && line.includes('매수')
+                  const isSell = isConclusion && line.includes('매도')
+                  const isHold = isConclusion && line.includes('관망')
+                  return (
+                    <p key={i} className={
+                      isConclusion
+                        ? `text-sm font-bold mt-1 px-2 py-1 rounded-lg inline-block ${
+                            isBuy  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
+                            isSell ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' :
+                            isHold ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300' :
+                            'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`
+                        : 'text-xs text-gray-600 dark:text-gray-300 leading-relaxed'
+                    }>
+                      {line}
+                    </p>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
