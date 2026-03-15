@@ -57,9 +57,9 @@ export default function AnalysisCard({ symbol }: Props) {
   const rec = analysis ? recConfig[analysis.recommendation] : null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-700">AI 종합 분석</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <h3 className="font-semibold text-gray-700 dark:text-gray-200">AI 종합 분석</h3>
         <button
           onClick={runAnalysis}
           disabled={loading}
@@ -77,7 +77,7 @@ export default function AnalysisCard({ symbol }: Props) {
 
       {loading && (
         <div className="p-8 text-center">
-          <div className="text-gray-500 text-sm">분석 중입니다...</div>
+          <div className="text-gray-500 dark:text-gray-400 text-sm">분석 중입니다...</div>
           <div className="mt-3 flex justify-center gap-1">
             {[0, 1, 2].map(i => (
               <div key={i} className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -90,8 +90,8 @@ export default function AnalysisCard({ symbol }: Props) {
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-800">{analysis.score}</div>
-              <div className="text-xs text-gray-400">/ 100점</div>
+              <div className="text-4xl font-bold text-gray-800 dark:text-gray-100">{analysis.score}</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">/ 100점</div>
             </div>
             <div className="flex-1">
               <div className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${rec.color} ${rec.bg}`}>
@@ -120,8 +120,8 @@ export default function AnalysisCard({ symbol }: Props) {
             <ScoreBar label="거시경제" value={analysis.details.momentumScore} />
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-600 leading-relaxed">{analysis.reasoning}</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{analysis.reasoning}</p>
           </div>
 
           {(analysis.analystTargetPrice || analysis.fearGreedIndex || analysis.buffettIndicator) && (
