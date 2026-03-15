@@ -68,6 +68,7 @@ function getVixColor(v: number | null) {
   return 'text-red-600'
 }
 
+// 데스크탑용 타일
 function Tile({ title, value, sub, subColor = 'text-gray-500', loading }: {
   title: string; value: string; sub?: string; subColor?: string; loading: boolean
 }) {
@@ -80,6 +81,25 @@ function Tile({ title, value, sub, subColor = 'text-gray-500', loading }: {
         <>
           <div className="text-xl font-bold text-gray-800 dark:text-gray-100 leading-tight">{value}</div>
           {sub && <div className={`text-xs mt-0.5 ${subColor}`}>{sub}</div>}
+        </>
+      )}
+    </div>
+  )
+}
+
+// 모바일용 가로 스크롤 컴팩트 타일
+function CompactTile({ title, value, sub, subColor = 'text-gray-400', loading }: {
+  title: string; value: string; sub?: string; subColor?: string; loading: boolean
+}) {
+  return (
+    <div className="flex-shrink-0 w-[126px] bg-white dark:bg-gray-800 rounded-xl px-3 py-3 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 leading-tight truncate">{title}</div>
+      {loading ? (
+        <div className="h-6 bg-gray-100 dark:bg-gray-700 animate-pulse rounded" />
+      ) : (
+        <>
+          <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">{value}</div>
+          {sub && <div className={`text-[10px] mt-0.5 font-medium ${subColor}`}>{sub}</div>}
         </>
       )}
     </div>
@@ -100,87 +120,157 @@ export default function MarketOverview() {
   const d = data
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">시장 지표</h2>
-        <span className="text-xs text-gray-400 dark:text-gray-500">주식·ETF 실시간 / FRED 일별~분기</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">주식·ETF 실시간 / FRED 일별~분기</span>
       </div>
 
-      {/* 시장심리 */}
-      <div className="grid grid-cols-2 gap-3">
-        <Tile
-          title="CNN 공포탐욕지수"
-          value={d?.fearGreedIndex != null ? String(d.fearGreedIndex) : 'N/A'}
-          sub={d?.fearGreedIndex != null ? getFearGreedKor(d.fearGreedIndex) : '데이터 없음'}
-          subColor={getFearGreedColor(d?.fearGreedIndex ?? null)}
-          loading={loading}
-        />
-        <Tile
-          title={`VIX (변동성)`}
-          value={d?.vix != null ? d.vix.toFixed(2) : 'N/A'}
-          sub={getVixLabel(d?.vix ?? null)}
-          subColor={getVixColor(d?.vix ?? null)}
-          loading={loading}
-        />
+      {/* ─── 모바일: 가로 스크롤 ─── */}
+      <div className="md:hidden -mx-4 px-4">
+        <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+          <CompactTile
+            title="CNN 공포탐욕"
+            value={d?.fearGreedIndex != null ? String(d.fearGreedIndex) : 'N/A'}
+            sub={d?.fearGreedIndex != null ? getFearGreedKor(d.fearGreedIndex) : '-'}
+            subColor={getFearGreedColor(d?.fearGreedIndex ?? null)}
+            loading={loading}
+          />
+          <CompactTile
+            title="VIX (변동성)"
+            value={d?.vix != null ? d.vix.toFixed(1) : 'N/A'}
+            sub={getVixLabel(d?.vix ?? null)}
+            subColor={getVixColor(d?.vix ?? null)}
+            loading={loading}
+          />
+          <CompactTile
+            title="버핏지수"
+            value={d?.buffettIndicator != null ? `${d.buffettIndicator}%` : 'N/A'}
+            sub={getBuffettLabel(d?.buffettIndicator ?? null)}
+            subColor={getBuffettColor(d?.buffettIndicator ?? null)}
+            loading={loading}
+          />
+          <CompactTile
+            title="국채 10년"
+            value={d?.treasury10y != null ? `${d.treasury10y.toFixed(2)}%` : 'N/A'}
+            sub={d?.treasury10y != null ? (d.treasury10y > 4.5 ? '고금리' : d.treasury10y > 3.5 ? '보통' : '저금리') : '-'}
+            loading={loading}
+          />
+          <CompactTile
+            title="기준금리 (Fed)"
+            value={d?.fedFunds != null ? `${d.fedFunds.toFixed(2)}%` : 'N/A'}
+            loading={loading}
+          />
+          <CompactTile
+            title="CPI (전년비)"
+            value={d?.cpiYoy != null ? `${d.cpiYoy.toFixed(1)}%` : 'N/A'}
+            sub={d?.cpiYoy != null ? (d.cpiYoy > 3 ? '인플레 높음' : d.cpiYoy > 2 ? '목표 상단' : '안정') : '-'}
+            subColor={d?.cpiYoy != null ? (d.cpiYoy > 3 ? 'text-red-500' : d.cpiYoy > 2 ? 'text-yellow-600' : 'text-green-600') : 'text-gray-400'}
+            loading={loading}
+          />
+          <CompactTile
+            title="실업률"
+            value={d?.unemployment != null ? `${d.unemployment.toFixed(1)}%` : 'N/A'}
+            sub={d?.unemployment != null ? (d.unemployment > 5 ? '침체 우려' : d.unemployment > 4 ? '보통' : '완전고용') : '-'}
+            loading={loading}
+          />
+          <CompactTile
+            title="금 (oz)"
+            value={d?.gold != null ? `$${Math.round(d.gold).toLocaleString()}` : 'N/A'}
+            loading={loading}
+          />
+          <CompactTile
+            title="WTI 원유"
+            value={d?.oil != null ? `$${d.oil.toFixed(1)}` : 'N/A'}
+            loading={loading}
+          />
+          <CompactTile
+            title="달러 (DXY)"
+            value={d?.dxy != null ? d.dxy.toFixed(1) : 'N/A'}
+            sub={d?.dxy != null ? (d.dxy > 105 ? '달러 강세' : d.dxy > 98 ? '보통' : '달러 약세') : '-'}
+            loading={loading}
+          />
+        </div>
       </div>
 
-      {/* 거시경제 */}
-      <div className="grid grid-cols-2 gap-3">
-        <Tile
-          title="버핏지수 (시총/GDP)"
-          value={d?.buffettIndicator != null ? `${d.buffettIndicator}%` : 'N/A'}
-          sub={getBuffettLabel(d?.buffettIndicator ?? null)}
-          subColor={getBuffettColor(d?.buffettIndicator ?? null)}
-          loading={loading}
-        />
-        <Tile
-          title="미국 국채 10년"
-          value={d?.treasury10y != null ? `${d.treasury10y.toFixed(2)}%` : 'N/A'}
-          sub={d?.treasury10y != null ? (d.treasury10y > 4.5 ? '고금리 구간' : d.treasury10y > 3.5 ? '보통' : '저금리 구간') : '-'}
-          loading={loading}
-        />
-      </div>
+      {/* ─── 데스크탑: 그리드 ─── */}
+      <div className="hidden md:space-y-3 md:block">
+        {/* 시장심리 */}
+        <div className="grid grid-cols-2 gap-3">
+          <Tile
+            title="CNN 공포탐욕지수"
+            value={d?.fearGreedIndex != null ? String(d.fearGreedIndex) : 'N/A'}
+            sub={d?.fearGreedIndex != null ? getFearGreedKor(d.fearGreedIndex) : '데이터 없음'}
+            subColor={getFearGreedColor(d?.fearGreedIndex ?? null)}
+            loading={loading}
+          />
+          <Tile
+            title="VIX (변동성)"
+            value={d?.vix != null ? d.vix.toFixed(2) : 'N/A'}
+            sub={getVixLabel(d?.vix ?? null)}
+            subColor={getVixColor(d?.vix ?? null)}
+            loading={loading}
+          />
+        </div>
 
-      {/* 금리·경제 */}
-      <div className="grid grid-cols-3 gap-3">
-        <Tile
-          title="기준금리 (Fed)"
-          value={d?.fedFunds != null ? `${d.fedFunds.toFixed(2)}%` : 'N/A'}
-          loading={loading}
-        />
-        <Tile
-          title="CPI (전년비)"
-          value={d?.cpiYoy != null ? `${d.cpiYoy.toFixed(1)}%` : 'N/A'}
-          sub={d?.cpiYoy != null ? (d.cpiYoy > 3 ? '인플레 높음' : d.cpiYoy > 2 ? '목표 상단' : '안정') : '-'}
-          subColor={d?.cpiYoy != null ? (d.cpiYoy > 3 ? 'text-red-500' : d.cpiYoy > 2 ? 'text-yellow-600' : 'text-green-600') : 'text-gray-400'}
-          loading={loading}
-        />
-        <Tile
-          title="실업률"
-          value={d?.unemployment != null ? `${d.unemployment.toFixed(1)}%` : 'N/A'}
-          sub={d?.unemployment != null ? (d.unemployment > 5 ? '경기 침체 우려' : d.unemployment > 4 ? '보통' : '완전고용') : '-'}
-          loading={loading}
-        />
-      </div>
+        {/* 거시경제 */}
+        <div className="grid grid-cols-2 gap-3">
+          <Tile
+            title="버핏지수 (시총/GDP)"
+            value={d?.buffettIndicator != null ? `${d.buffettIndicator}%` : 'N/A'}
+            sub={getBuffettLabel(d?.buffettIndicator ?? null)}
+            subColor={getBuffettColor(d?.buffettIndicator ?? null)}
+            loading={loading}
+          />
+          <Tile
+            title="미국 국채 10년"
+            value={d?.treasury10y != null ? `${d.treasury10y.toFixed(2)}%` : 'N/A'}
+            sub={d?.treasury10y != null ? (d.treasury10y > 4.5 ? '고금리 구간' : d.treasury10y > 3.5 ? '보통' : '저금리 구간') : '-'}
+            loading={loading}
+          />
+        </div>
 
-      {/* 원자재·달러 */}
-      <div className="grid grid-cols-3 gap-3">
-        <Tile
-          title="금 (oz)"
-          value={d?.gold != null ? `$${Math.round(d.gold).toLocaleString()}` : 'N/A'}
-          loading={loading}
-        />
-        <Tile
-          title="WTI 원유 (배럴)"
-          value={d?.oil != null ? `$${d.oil.toFixed(2)}` : 'N/A'}
-          loading={loading}
-        />
-        <Tile
-          title="달러인덱스 (DXY)"
-          value={d?.dxy != null ? d.dxy.toFixed(2) : 'N/A'}
-          sub={d?.dxy != null ? (d.dxy > 105 ? '달러 강세' : d.dxy > 98 ? '보통' : '달러 약세') : '-'}
-          loading={loading}
-        />
+        {/* 금리·경제 */}
+        <div className="grid grid-cols-3 gap-3">
+          <Tile
+            title="기준금리 (Fed)"
+            value={d?.fedFunds != null ? `${d.fedFunds.toFixed(2)}%` : 'N/A'}
+            loading={loading}
+          />
+          <Tile
+            title="CPI (전년비)"
+            value={d?.cpiYoy != null ? `${d.cpiYoy.toFixed(1)}%` : 'N/A'}
+            sub={d?.cpiYoy != null ? (d.cpiYoy > 3 ? '인플레 높음' : d.cpiYoy > 2 ? '목표 상단' : '안정') : '-'}
+            subColor={d?.cpiYoy != null ? (d.cpiYoy > 3 ? 'text-red-500' : d.cpiYoy > 2 ? 'text-yellow-600' : 'text-green-600') : 'text-gray-400'}
+            loading={loading}
+          />
+          <Tile
+            title="실업률"
+            value={d?.unemployment != null ? `${d.unemployment.toFixed(1)}%` : 'N/A'}
+            sub={d?.unemployment != null ? (d.unemployment > 5 ? '경기 침체 우려' : d.unemployment > 4 ? '보통' : '완전고용') : '-'}
+            loading={loading}
+          />
+        </div>
+
+        {/* 원자재·달러 */}
+        <div className="grid grid-cols-3 gap-3">
+          <Tile
+            title="금 (oz)"
+            value={d?.gold != null ? `$${Math.round(d.gold).toLocaleString()}` : 'N/A'}
+            loading={loading}
+          />
+          <Tile
+            title="WTI 원유 (배럴)"
+            value={d?.oil != null ? `$${d.oil.toFixed(2)}` : 'N/A'}
+            loading={loading}
+          />
+          <Tile
+            title="달러인덱스 (DXY)"
+            value={d?.dxy != null ? d.dxy.toFixed(2) : 'N/A'}
+            sub={d?.dxy != null ? (d.dxy > 105 ? '달러 강세' : d.dxy > 98 ? '보통' : '달러 약세') : '-'}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   )

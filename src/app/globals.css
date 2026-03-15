@@ -62,3 +62,7 @@
     color: #f1f5f9;
   }
 }
+
+/* 스크롤바 숨기기 (시장 지표 가로 스크롤) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

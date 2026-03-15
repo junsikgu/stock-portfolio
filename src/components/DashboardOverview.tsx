@@ -270,7 +270,7 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
               </div>
             ) : (
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className={`text-5xl font-black ${scoreColor}`}>{portfolioScore ?? '—'}</span>
+                <span className={`text-6xl sm:text-5xl font-black ${scoreColor}`}>{portfolioScore ?? '—'}</span>
                 <span className="text-lg text-gray-400 dark:text-gray-500 font-light">/ 100</span>
                 {/* 전일 대비 */}
                 {scoreDelta != null && (
@@ -413,25 +413,25 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
             const currentValue = q ? q.price * h.quantity : null
             const pnlPct = currentValue != null && costBasis > 0 ? ((currentValue - costBasis) / costBasis) * 100 : null
             return (
-              <div key={h.id} className={`flex items-center px-4 py-3 gap-3 border-l-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 ${style ? style.row : 'border-l-gray-200 dark:border-l-gray-600'}`}>
+              <div key={h.id} className={`flex items-center px-4 py-4 gap-3 border-l-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 min-h-[64px] ${style ? style.row : 'border-l-gray-200 dark:border-l-gray-600'}`}>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight">{h.symbol}</div>
+                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-base sm:text-sm leading-tight">{h.symbol}</div>
                   <div className="text-xs text-gray-400 dark:text-gray-500 truncate leading-tight mt-0.5">{h.name}</div>
                 </div>
                 <div className="flex-shrink-0">
                   {isLoading && !ai ? (
                     <div className="w-20 h-5 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-full" />
                   ) : ai ? (
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${style?.badge || ''}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${style?.dot || ''}`} />
-                      {ai.score} · {style?.label}
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${style?.badge || ''}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${style?.dot || ''}`} />
+                      <span className="whitespace-nowrap">{ai.score} · {style?.label}</span>
                     </span>
                   ) : null}
                 </div>
                 <div className="text-right flex-shrink-0">
                   {q ? (
                     <>
-                      <div className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-tight">{fmtPrice(q.price, h.symbol)}</div>
+                      <div className="text-base sm:text-sm font-medium text-gray-800 dark:text-gray-100 leading-tight">{fmtPrice(q.price, h.symbol)}</div>
                       <div className={`text-xs leading-tight ${q.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {q.changePercent >= 0 ? '+' : ''}{q.changePercent?.toFixed(2)}%
                       </div>

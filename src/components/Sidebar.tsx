@@ -70,26 +70,33 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
         </div>
       </aside>
 
-      {/* 모바일 하단 네비게이션 */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              'flex-1 flex flex-col items-center py-2.5 gap-0.5 text-xs font-medium transition-colors',
-              pathname === item.href
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-400 dark:text-gray-500'
-            )}
-          >
-            <span className="text-xl leading-none">{item.icon}</span>
-            <span>{item.label}</span>
-          </Link>
-        ))}
+      {/* 모바일 하단 탭바 */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 flex items-stretch"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {navItems.map((item) => {
+          const active = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-medium transition-colors min-h-[52px]',
+                active
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-400 dark:text-gray-500 active:text-gray-600 dark:active:text-gray-300'
+              )}
+            >
+              <span className={cn('text-xl leading-none transition-transform', active && 'scale-110')}>{item.icon}</span>
+              <span className={cn('transition-colors', active && 'font-bold')}>{item.label}</span>
+              {active && <span className="absolute bottom-0 mb-0 w-8 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />}
+            </Link>
+          )
+        })}
         <button
           onClick={toggle}
-          className="flex-none px-3 flex flex-col items-center py-2.5 gap-0.5 text-xs text-gray-400 dark:text-gray-500"
+          className="flex-none px-3 flex flex-col items-center justify-center py-3 gap-0.5 text-xs text-gray-400 dark:text-gray-500 min-h-[52px] active:text-gray-600 dark:active:text-gray-300"
         >
           <span className="text-xl leading-none">{theme === 'dark' ? '☀️' : '🌙'}</span>
           <span>테마</span>
