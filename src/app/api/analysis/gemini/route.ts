@@ -95,7 +95,7 @@ ${pe ? `- PER: ${pe.toFixed(1)}배` : ''}
 투자자가 실제로 참고할 수 있도록 구체적이고 명확하게 작성하고, 각 문단은 3~5문장으로 구성해주세요. 마크다운 기호(**, ## 등)는 사용하지 마세요.`
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,7 +107,8 @@ ${pe ? `- PER: ${pe.toFixed(1)}배` : ''}
     )
     const geminiData = await geminiRes.json()
     if (!geminiRes.ok) {
-      throw new Error(geminiData?.error?.message || 'Gemini API 오류')
+      const msg = geminiData?.error?.message || JSON.stringify(geminiData?.error) || 'Gemini API 오류'
+      throw new Error(`[${geminiRes.status}] ${msg}`)
     }
     const text: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
