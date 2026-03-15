@@ -76,9 +76,7 @@ export async function GET(request: NextRequest) {
       : fearGreed < 75 ? `${fearGreed} (탐욕)`
       : `${fearGreed} (극탐욕)`
 
-    const prompt = `You are a professional stock investment analyst. Write the analysis ENTIRELY IN KOREAN (한국어). Do NOT use any Japanese, Chinese, or English words in your response. Every single sentence must be in Korean only.
-
-아래 지표를 바탕으로 ${name} (${symbol}) 종목에 대한 투자 분석을 작성하세요.
+    const prompt = `아래 지표를 바탕으로 ${name} (${symbol}) 종목에 대한 투자 분석을 한국어로 작성하세요.
 
 종목 지표:
 - 현재가: ${currency}${price.toLocaleString()}
@@ -103,7 +101,13 @@ ${pe ? `- PER: ${pe.toFixed(1)}배` : ''}
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'system',
+            content: '당신은 한국어 전용 주식 투자 분석가입니다. 반드시 한국어(한글)만 사용하세요. 한자(漢字), 일본어(日本語), 중국어(中文) 등 한글이 아닌 문자는 절대 사용하지 마세요. 모든 문장을 순수한 한국어로만 작성하세요.',
+          },
+          { role: 'user', content: prompt },
+        ],
         temperature: 0.7,
         max_tokens: 800,
       }),
