@@ -4,24 +4,24 @@ import { useState, useEffect } from 'react'
 import { AnalysisResult, Recommendation } from '@/types'
 
 const recConfig: Record<Recommendation, { label: string; color: string; bg: string }> = {
-  STRONG_BUY: { label: '적극매수', color: 'text-green-700', bg: 'bg-green-100' },
-  BUY: { label: '매수', color: 'text-green-600', bg: 'bg-green-50' },
-  HOLD: { label: '관망', color: 'text-yellow-700', bg: 'bg-yellow-50' },
-  SELL: { label: '매도', color: 'text-red-600', bg: 'bg-red-50' },
-  STRONG_SELL: { label: '적극매도', color: 'text-red-700', bg: 'bg-red-100' },
+  STRONG_BUY: { label: '적극매수', color: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30' },
+  BUY:        { label: '매수',     color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+  HOLD:       { label: '관망',     color: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+  SELL:       { label: '매도',     color: 'text-red-600 dark:text-red-400',   bg: 'bg-red-50 dark:bg-red-900/20' },
+  STRONG_SELL:{ label: '적극매도', color: 'text-red-700 dark:text-red-400',   bg: 'bg-red-100 dark:bg-red-900/30' },
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="w-20 text-gray-500 text-right">{label}</span>
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <span className="w-20 text-gray-500 dark:text-gray-400 text-right">{label}</span>
+      <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
           className="h-full bg-blue-500 rounded-full transition-all"
           style={{ width: `${value}%` }}
         />
       </div>
-      <span className="w-6 text-gray-600">{value}</span>
+      <span className="w-6 text-gray-600 dark:text-gray-300">{value}</span>
     </div>
   )
 }
@@ -35,6 +35,11 @@ export default function AnalysisCard({ symbol }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Gemini 심층 분석
+  const [geminiText, setGeminiText] = useState('')
+  const [geminiLoading, setGeminiLoading] = useState(false)
+  const [geminiError, setGeminiError] = useState('')
+
   useEffect(() => {
     runAnalysis()
   }, [symbol])
@@ -42,8 +47,10 @@ export default function AnalysisCard({ symbol }: Props) {
   async function runAnalysis() {
     setLoading(true)
     setError('')
+    setGeminiText('')
+    setGeminiError('')
     try {
-      const res = await fetch(`/api/analysis?symbol=${symbol}`)
+      const res = await fetch(`/api/analysis?symbol=${encodeURIComponent(symbol)}`)
       if (!res.ok) throw new Error('분석 실패')
       const data = await res.json()
       setAnalysis(data)
@@ -51,6 +58,27 @@ export default function AnalysisCard({ symbol }: Props) {
       setError('분석 중 오류가 발생했습니다')
     } finally {
       setLoading(false)
+    }
+
+    // Gemini 분석은 별도로 비동기 호출
+    fetchGemini()
+  }
+
+  async function fetchGemini() {
+    setGeminiLoading(true)
+    setGeminiError('')
+    try {
+      const res = await fetch(`/api/analysis/gemini?symbol=${encodeURIComponent(symbol)}`)
+      const data = await res.json()
+      if (data.analysis) {
+        setGeminiText(data.analysis)
+      } else {
+        setGeminiError(data.error || 'Gemini 분석 실패')
+      }
+    } catch {
+      setGeminiError('Gemini 연결 오류')
+    } finally {
+      setGeminiLoading(false)
     }
   }
 
@@ -69,11 +97,7 @@ export default function AnalysisCard({ symbol }: Props) {
         </button>
       </div>
 
-      {error && (
-        <div className="p-4 text-red-500 text-sm">{error}</div>
-      )}
-
-
+      {error && <div className="p-4 text-red-500 text-sm">{error}</div>}
 
       {loading && (
         <div className="p-8 text-center">
@@ -88,6 +112,7 @@ export default function AnalysisCard({ symbol }: Props) {
 
       {analysis && rec && (
         <div className="p-4 space-y-4">
+          {/* 점수 + 추천 */}
           <div className="flex items-center gap-4">
             <div className="text-center">
               <div className="text-4xl font-bold text-gray-800 dark:text-gray-100">{analysis.score}</div>
@@ -98,8 +123,7 @@ export default function AnalysisCard({ symbol }: Props) {
                 {rec.label}
               </div>
               <div className="mt-2">
-                {/* Score bar */}
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${
                       analysis.score >= 60 ? 'bg-green-500' :
@@ -112,6 +136,7 @@ export default function AnalysisCard({ symbol }: Props) {
             </div>
           </div>
 
+          {/* 세부 점수 바 */}
           <div className="space-y-1.5">
             <ScoreBar label="기술적" value={analysis.details.technicalScore} />
             <ScoreBar label="애널리스트" value={analysis.details.analystScore} />
@@ -120,32 +145,81 @@ export default function AnalysisCard({ symbol }: Props) {
             <ScoreBar label="거시경제" value={analysis.details.momentumScore} />
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{analysis.reasoning}</p>
-          </div>
-
+          {/* 지표 그리드 */}
           {(analysis.analystTargetPrice || analysis.fearGreedIndex || analysis.buffettIndicator) && (
             <div className="grid grid-cols-3 gap-2 text-center">
               {analysis.analystTargetPrice && (
-                <div className="bg-blue-50 rounded-lg p-2">
-                  <div className="text-xs text-gray-500">목표주가</div>
-                  <div className="font-semibold text-blue-700">${analysis.analystTargetPrice.toFixed(0)}</div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">목표주가</div>
+                  <div className="font-semibold text-blue-700 dark:text-blue-400">${analysis.analystTargetPrice.toFixed(0)}</div>
                 </div>
               )}
               {analysis.fearGreedIndex !== undefined && (
-                <div className="bg-orange-50 rounded-lg p-2">
-                  <div className="text-xs text-gray-500">공포탐욕</div>
-                  <div className="font-semibold text-orange-700">{analysis.fearGreedIndex}</div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">공포탐욕</div>
+                  <div className="font-semibold text-orange-700 dark:text-orange-400">{analysis.fearGreedIndex}</div>
                 </div>
               )}
               {analysis.buffettIndicator !== undefined && (
-                <div className="bg-purple-50 rounded-lg p-2">
-                  <div className="text-xs text-gray-500">버핏지수</div>
-                  <div className="font-semibold text-purple-700">{analysis.buffettIndicator?.toFixed(0)}%</div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">버핏지수</div>
+                  <div className="font-semibold text-purple-700 dark:text-purple-400">{analysis.buffettIndicator?.toFixed(0)}%</div>
                 </div>
               )}
             </div>
           )}
+
+          {/* Gemini 심층 분석 */}
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-1.5">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L9.5 9.5H2L8 14L5.5 21.5L12 17L18.5 21.5L16 14L22 9.5H14.5L12 2Z" fill="#4285F4" opacity="0.9"/>
+                </svg>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Gemini 심층 분석</span>
+              </div>
+              {!geminiLoading && (
+                <button
+                  onClick={fetchGemini}
+                  className="ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  재생성
+                </button>
+              )}
+            </div>
+
+            {geminiLoading && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-3">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                  Gemini가 분석 중입니다...
+                </div>
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div key={i} className={`h-3 bg-gray-100 dark:bg-gray-700 animate-pulse rounded ${i === 4 ? 'w-2/3' : 'w-full'}`} />
+                ))}
+              </div>
+            )}
+
+            {geminiError && !geminiLoading && (
+              <div className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                {geminiError}
+              </div>
+            )}
+
+            {geminiText && !geminiLoading && (
+              <div className="space-y-3">
+                {geminiText.split('\n').filter(p => p.trim()).map((para, i) => (
+                  <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {para}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
