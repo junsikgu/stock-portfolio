@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PortfolioHolding } from '@/types'
 import StockSearch from '@/components/StockSearch'
 import AnalysisCard from '@/components/AnalysisCard'
+import StockChart from '@/components/StockChart'
 
 interface StockQuote {
   price: number
@@ -723,52 +724,87 @@ export default function PortfolioClient({ initialHoldings }: Props) {
           </div>
 
           {/* ─── 종목 클릭 시 상세 패널 ─── */}
-          {selectedSymbol && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedSymbol}</span> 상세 분석
-                <button onClick={() => setSelectedSymbol(null)} className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">✕</button>
-              </p>
-
-              <AnalysisCard symbol={selectedSymbol} />
-
-              {/* 최신 뉴스 */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">최신 뉴스</h3>
+          {selectedSymbol && (() => {
+            const selHolding = holdings.find(h => h.symbol === selectedSymbol)
+            const selQuote   = quotes[selectedSymbol]
+            const selKrw     = isKrwStock(selectedSymbol)
+            return (
+              <div className="space-y-3">
+                {/* 헤더 */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    {selectedSymbol} 상세 분석
+                  </p>
+                  <button
+                    onClick={() => setSelectedSymbol(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none"
+                  >✕</button>
                 </div>
-                {!news[selectedSymbol] ? (
-                  <div className="p-4 space-y-3">
-                    {[0, 1].map(i => (
-                      <div key={i} className="space-y-1.5">
-                        <div className="h-4 bg-gray-100 dark:bg-gray-700 animate-pulse rounded w-full" />
-                        <div className="h-3 bg-gray-100 dark:bg-gray-700 animate-pulse rounded w-24" />
-                      </div>
-                    ))}
+
+                {/* 차트 */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                  <StockChart
+                    symbol={selectedSymbol}
+                    avgPrice={selHolding?.avg_price}
+                    high52={selQuote?.high52}
+                    low52={selQuote?.low52}
+                    isKrw={selKrw}
+                  />
+                </div>
+
+                {/* AI 분석 */}
+                <AnalysisCard symbol={selectedSymbol} />
+
+                {/* 최신 뉴스 */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">최신 뉴스</h3>
+                    <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">Finnhub</span>
                   </div>
-                ) : news[selectedSymbol].length === 0 ? (
-                  <div className="p-4 text-sm text-gray-400 dark:text-gray-500">뉴스를 찾을 수 없습니다</div>
-                ) : (
-                  <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                    {news[selectedSymbol].map((n, i) => (
-                      <a key={i} href={n.link} target="_blank" rel="noopener noreferrer"
-                        className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                        <div className="text-sm text-gray-800 dark:text-gray-100 font-medium leading-snug line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400">
-                          {n.title}
+                  {!news[selectedSymbol] ? (
+                    <div className="p-4 space-y-3">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="space-y-1.5">
+                          <div className="h-4 bg-gray-100 dark:bg-gray-700 animate-pulse rounded w-full" />
+                          <div className="h-3 bg-gray-100 dark:bg-gray-700 animate-pulse rounded w-28" />
                         </div>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-gray-400 dark:text-gray-500">{n.publisher}</span>
-                          {n.publishedAt && (
-                            <span className="text-xs text-gray-300 dark:text-gray-600">· {timeAgo(n.publishedAt)}</span>
-                          )}
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) : news[selectedSymbol].length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">최근 뉴스가 없습니다</div>
+                  ) : (
+                    <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                      {news[selectedSymbol].map((n, i) => (
+                        <a
+                          key={i}
+                          href={n.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                        >
+                          <div className="flex-shrink-0 w-5 h-5 mt-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold">
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-800 dark:text-gray-100 font-medium leading-snug line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400">
+                              {n.title}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{n.publisher}</span>
+                              {n.publishedAt && (
+                                <span className="text-xs text-gray-300 dark:text-gray-600">· {timeAgo(n.publishedAt)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="flex-shrink-0 text-gray-300 dark:text-gray-600 text-xs mt-1">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
         </>
       )}
     </div>
