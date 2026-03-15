@@ -205,8 +205,8 @@ export default function AnalysisCard({ symbol }: Props) {
             )}
 
             {geminiError && !geminiLoading && (
-              <div className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-                {geminiError}
+              <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                Gemini 분석을 사용하려면 Google AI Studio에서 결제 설정이 필요합니다.
               </div>
             )}
 
