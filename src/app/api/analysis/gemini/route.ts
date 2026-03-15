@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import YahooFinance from 'yahoo-finance2'
 const yahooFinance = new YahooFinance()
 
@@ -95,14 +94,22 @@ ${pe ? `- PER: ${pe.toFixed(1)}배` : ''}
 
 투자자가 실제로 참고할 수 있도록 구체적이고 명확하게 작성하고, 각 문단은 3~5문장으로 구성해주세요. 마크다운 기호(**, ## 등)는 사용하지 마세요.`
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
-    })
-
-    const result = await model.generateContent(prompt)
-    const text = result.response.text()
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
+        }),
+      }
+    )
+    const geminiData = await geminiRes.json()
+    if (!geminiRes.ok) {
+      throw new Error(geminiData?.error?.message || 'Gemini API 오류')
+    }
+    const text: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
     return NextResponse.json({ analysis: text, symbol: symbol.toUpperCase() })
   } catch (error: any) {
