@@ -37,16 +37,15 @@ async function getFearGreed(): Promise<number | undefined> {
 }
 
 export async function GET(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 })
+    return NextResponse.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 })
   }
 
   const symbol = request.nextUrl.searchParams.get('symbol')
   if (!symbol) return NextResponse.json({ error: 'Symbol required' }, { status: 400 })
 
   try {
-    // 주가 데이터 + 애널리스트 + 공포탐욕 병렬 fetch
     const [quote, analyst, fearGreed] = await Promise.all([
       yahooFinance.quote(symbol.toUpperCase(), {}, { validateResult: false }) as Promise<any>,
       getAnalystData(symbol.toUpperCase()),
@@ -79,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     const prompt = `당신은 전문 주식 투자 분석가입니다. 아래 지표를 바탕으로 ${name} (${symbol}) 종목에 대한 투자 분석을 한국어로 작성해주세요.
 
-**종목 지표:**
+종목 지표:
 - 현재가: ${currency}${price.toLocaleString()}
 - 52주 고점: ${currency}${high52.toLocaleString()} / 저점: ${currency}${low52.toLocaleString()}${position52 != null ? ` → 현재 52주 범위의 ${position52}% 위치` : ''}
 ${analyst && totalAnalysts > 0 ? `- 애널리스트 의견 (${totalAnalysts}명): 적극매수 ${analyst.strongBuy}명, 매수 ${analyst.buy}명, 보유 ${analyst.hold}명, 매도 ${analyst.sell}명, 적극매도 ${analyst.strongSell}명` : ''}
@@ -87,34 +86,37 @@ ${analyst?.targetPrice ? `- 목표주가: ${currency}${Number(analyst.targetPric
 ${pe ? `- PER: ${pe.toFixed(1)}배` : ''}
 - 공포탐욕지수: ${fearLabel}
 
-**작성 요령:**
+작성 요령:
 1. 첫 문단: 52주 가격 위치와 기술적 흐름에 대한 평가
 2. 둘째 문단: 애널리스트 컨센서스와 목표주가를 근거로 한 기대 수익성 판단
 3. 셋째 문단: 공포탐욕지수 등 매크로 심리 환경을 고려한 리스크와 투자 결론
 
-투자자가 실제로 참고할 수 있도록 구체적이고 명확하게 작성하고, 각 문단은 3~5문장으로 구성해주세요. 마크다운 기호(**, ## 등)는 사용하지 마세요.`
+투자자가 실제로 참고할 수 있도록 구체적이고 명확하게 작성하고, 각 문단은 3~5문장으로 구성해주세요. 마크다운 기호는 사용하지 마세요.`
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
-        }),
-      }
-    )
-    const geminiData = await geminiRes.json()
-    if (!geminiRes.ok) {
-      const msg = geminiData?.error?.message || JSON.stringify(geminiData?.error) || 'Gemini API 오류'
-      throw new Error(`[${geminiRes.status}] ${msg}`)
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 800,
+      }),
+    })
+
+    const groqData = await groqRes.json()
+    if (!groqRes.ok) {
+      const msg = groqData?.error?.message || JSON.stringify(groqData?.error) || 'Groq API 오류'
+      throw new Error(`[${groqRes.status}] ${msg}`)
     }
-    const text: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
+    const text: string = groqData.choices?.[0]?.message?.content || ''
     return NextResponse.json({ analysis: text, symbol: symbol.toUpperCase() })
   } catch (error: any) {
-    console.error('Gemini analysis error:', error)
-    return NextResponse.json({ error: 'Gemini 분석 실패: ' + (error?.message || '') }, { status: 500 })
+    console.error('Groq analysis error:', error)
+    return NextResponse.json({ error: 'AI 분석 실패: ' + (error?.message || '') }, { status: 500 })
   }
 }

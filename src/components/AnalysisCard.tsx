@@ -173,10 +173,9 @@ export default function AnalysisCard({ symbol }: Props) {
           <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center gap-1.5">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L9.5 9.5H2L8 14L5.5 21.5L12 17L18.5 21.5L16 14L22 9.5H14.5L12 2Z" fill="#4285F4" opacity="0.9"/>
-                </svg>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Gemini 심층 분석</span>
+                <span className="text-xs font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded">Groq</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">AI 심층 분석</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">llama-3.3-70b</span>
               </div>
               {!geminiLoading && (
                 <button
