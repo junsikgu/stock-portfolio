@@ -76,7 +76,9 @@ export async function GET(request: NextRequest) {
       : fearGreed < 75 ? `${fearGreed} (탐욕)`
       : `${fearGreed} (극탐욕)`
 
-    const prompt = `당신은 전문 주식 투자 분석가입니다. 아래 지표를 바탕으로 ${name} (${symbol}) 종목에 대한 투자 분석을 한국어로 작성해주세요.
+    const prompt = `You are a professional stock investment analyst. Write the analysis ENTIRELY IN KOREAN (한국어). Do NOT use any Japanese, Chinese, or English words in your response. Every single sentence must be in Korean only.
+
+아래 지표를 바탕으로 ${name} (${symbol}) 종목에 대한 투자 분석을 작성하세요.
 
 종목 지표:
 - 현재가: ${currency}${price.toLocaleString()}

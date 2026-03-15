@@ -195,7 +195,7 @@ export default function AnalysisCard({ symbol }: Props) {
                       <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                     ))}
                   </div>
-                  Gemini가 분석 중입니다...
+                  AI가 분석 중입니다...
                 </div>
                 {[0, 1, 2, 3, 4].map(i => (
                   <div key={i} className={`h-3 bg-gray-100 dark:bg-gray-700 animate-pulse rounded ${i === 4 ? 'w-2/3' : 'w-full'}`} />
