@@ -18,20 +18,11 @@ export default function StockSearch({ onSelect, placeholder = '종목 검색...'
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
-  const [koreanWarning, setKoreanWarning] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const search = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!q.trim()) { setResults([]); setOpen(false); setKoreanWarning(false); return }
-
-    if (/[\uAC00-\uD7A3\u3131-\u318E]/.test(q)) {
-      setKoreanWarning(true)
-      setResults([])
-      setOpen(false)
-      return
-    }
-    setKoreanWarning(false)
+    if (!q.trim()) { setResults([]); setOpen(false); return }
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
@@ -56,20 +47,14 @@ export default function StockSearch({ onSelect, placeholder = '종목 검색...'
         onChange={(e) => { setQuery(e.target.value); search(e.target.value) }}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         onFocus={() => results.length > 0 && setOpen(true)}
-        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder={placeholder}
       />
       {loading && (
         <div className="absolute right-3 top-3 text-gray-400 text-xs">검색 중...</div>
       )}
-      {koreanWarning && (
-        <div className="absolute z-50 w-full mt-1 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2.5 text-xs text-yellow-700">
-          한국어 검색은 지원되지 않습니다. 영문으로 입력해주세요<br />
-          <span className="font-medium">예) 삼성전자 → Samsung, 카카오 → Kakao</span>
-        </div>
-      )}
       {open && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
           {results.map((r) => (
             <button
               key={r.symbol}
@@ -79,13 +64,13 @@ export default function StockSearch({ onSelect, placeholder = '종목 검색...'
                 setOpen(false)
                 setResults([])
               }}
-              className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center justify-between border-b border-gray-50 last:border-0"
+              className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center justify-between border-b border-gray-50 dark:border-gray-700 last:border-0"
             >
-              <div>
-                <span className="font-semibold text-gray-800 text-sm">{r.symbol}</span>
-                <span className="text-gray-500 text-xs ml-2">{r.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{r.symbol}</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs ml-2 truncate">{r.name}</span>
               </div>
-              <span className="text-xs text-gray-400">{r.exchange}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{r.exchange}</span>
             </button>
           ))}
         </div>

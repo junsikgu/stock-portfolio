@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import YahooFinance from 'yahoo-finance2'
+import { searchKorean } from '@/lib/korean-stocks'
 const yahooFinance = new YahooFinance()
 
 export async function GET(request: NextRequest) {
@@ -10,15 +11,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Query required' }, { status: 400 })
   }
 
-  // 한국어 입력 감지
+  // 한국어 입력 → 사전 검색
   if (/[\uAC00-\uD7A3\u3131-\u318E]/.test(query)) {
-    return NextResponse.json({ error: '영문으로 검색해주세요 (예: Samsung → 삼성전자)' }, { status: 400 })
+    const results = searchKorean(query)
+    return NextResponse.json(results)
   }
 
   try {
     const results = await yahooFinance.search(query, {}, { validateResult: false }) as any
     const stocks = (results.quotes || [])
-      .filter((q: any) => q.quoteType === 'EQUITY' && q.exchange)
+      .filter((q: any) => ['EQUITY', 'ETF', 'MUTUALFUND'].includes(q.quoteType) && q.exchange)
       .slice(0, 8)
       .map((q: any) => ({
         symbol: q.symbol,
