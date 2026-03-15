@@ -189,6 +189,12 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
   const buyHoldings    = holdings.filter(h => ['STRONG_BUY', 'BUY'].includes(analyses[h.symbol]?.recommendation))
   const holdHoldings   = holdings.filter(h => analyses[h.symbol]?.recommendation === 'HOLD')
 
+  // 점수 기반 경고
+  const scoredHoldings = holdings.filter(h => analyses[h.symbol] != null)
+  const redStocks      = scoredHoldings.filter(h => analyses[h.symbol].score <= 40)
+  const orangeStocks   = scoredHoldings.filter(h => analyses[h.symbol].score > 40 && analyses[h.symbol].score <= 55)
+  const allGood        = !isLoading && scoredHoldings.length === holdings.length && redStocks.length === 0 && orangeStocks.length === 0
+
   const scoreColor = portfolioScore == null ? 'text-gray-400 dark:text-gray-500'
     : portfolioScore >= 60 ? 'text-green-600 dark:text-green-400'
     : portfolioScore >= 40 ? 'text-yellow-600 dark:text-yellow-400'
@@ -205,6 +211,42 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
 
   return (
     <div className="space-y-3">
+
+      {/* ─── AI 점수 경고 배너 ─── */}
+      {redStocks.length > 0 && (
+        <Link
+          href="/dashboard/portfolio"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-300 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+        >
+          <span className="flex-shrink-0 text-base">⚠️</span>
+          <span className="flex-1">
+            {redStocks.length === 1
+              ? `${redStocks[0].symbol} 현재 위험 구간입니다 (${analyses[redStocks[0].symbol].score}점)`
+              : `${redStocks.length}개 종목이 위험 구간입니다`}
+          </span>
+          <span className="text-xs opacity-60">→ 포트폴리오 확인</span>
+        </Link>
+      )}
+      {redStocks.length === 0 && orangeStocks.length > 0 && (
+        <Link
+          href="/dashboard/portfolio"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/25 text-orange-700 dark:text-orange-300 text-sm font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
+        >
+          <span className="flex-shrink-0 text-base">⚠️</span>
+          <span className="flex-1">
+            {orangeStocks.length === 1
+              ? `${orangeStocks[0].symbol} 현재 주의 구간입니다 (${analyses[orangeStocks[0].symbol].score}점)`
+              : `${orangeStocks.length}개 종목이 주의 구간입니다`}
+          </span>
+          <span className="text-xs opacity-60">→ 포트폴리오 확인</span>
+        </Link>
+      )}
+      {allGood && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-semibold">
+          <span className="text-base">✅</span>
+          <span>모든 종목 양호한 상태입니다</span>
+        </div>
+      )}
 
       {/* ─── 시장 한 줄 요약 배너 ─── */}
       {banner ? (
