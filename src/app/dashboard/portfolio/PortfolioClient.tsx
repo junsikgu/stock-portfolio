@@ -23,7 +23,7 @@ interface NewsItem {
   title: string
   link: string
   publisher: string
-  publishedAt: number
+  publishedAt?: number | string
 }
 
 const REC_STYLE: Record<string, { label: string; bg: string; text: string; border: string; leftBar: string }> = {
@@ -42,8 +42,12 @@ function isKrwStock(symbol: string) {
   return symbol.endsWith('.KS') || symbol.endsWith('.KQ')
 }
 
-function timeAgo(ts: number) {
-  const diff = Math.floor((Date.now() / 1000 - ts) / 3600)
+function timeAgo(ts: number | string | undefined) {
+  if (!ts) return ''
+  // ts가 초 단위 Unix 타임스탬프(number)이거나 ISO 문자열(string)일 수 있음
+  const ms = typeof ts === 'number' ? ts * 1000 : new Date(ts).getTime()
+  if (isNaN(ms)) return ''
+  const diff = Math.floor((Date.now() - ms) / 3600000)
   if (diff < 1) return '방금 전'
   if (diff < 24) return `${diff}시간 전`
   return `${Math.floor(diff / 24)}일 전`

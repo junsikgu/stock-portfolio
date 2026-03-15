@@ -82,6 +82,7 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
 
   const dangerHoldings = holdings.filter(h => ['SELL', 'STRONG_SELL'].includes(analyses[h.symbol]?.recommendation))
   const buyHoldings = holdings.filter(h => ['STRONG_BUY', 'BUY'].includes(analyses[h.symbol]?.recommendation))
+  const holdHoldings = holdings.filter(h => analyses[h.symbol]?.recommendation === 'HOLD')
 
   const scoreColor = portfolioScore == null ? 'text-gray-400 dark:text-gray-500'
     : portfolioScore >= 60 ? 'text-green-600 dark:text-green-400'
@@ -120,6 +121,11 @@ export default function DashboardOverview({ holdings }: { holdings: PortfolioHol
               {buyHoldings.length > 0 && (
                 <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2.5 py-1 rounded-full font-semibold">
                   매수 {buyHoldings.length}
+                </span>
+              )}
+              {holdHoldings.length > 0 && (
+                <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2.5 py-1 rounded-full font-semibold">
+                  관망 {holdHoldings.length}
                 </span>
               )}
               {dangerHoldings.length > 0 && (
