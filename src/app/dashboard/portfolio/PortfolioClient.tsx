@@ -265,19 +265,34 @@ export default function PortfolioClient({ initialHoldings }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">총 평가금액</div>
-            <div className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">{fmtTotal(totalCurrentValue)}</div>
+            <div className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+              ${Math.round(totalCurrentValue).toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              ₩{Math.round(totalCurrentValue * usdKrw).toLocaleString()}
+            </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">총 투자금액</div>
-            <div className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">{fmtTotal(totalCost)}</div>
+            <div className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+              ${Math.round(totalCost).toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              ₩{Math.round(totalCost * usdKrw).toLocaleString()}
+            </div>
           </div>
           <div className={`rounded-xl p-3 sm:p-4 shadow-sm border ${totalPnl >= 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'}`}>
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">총 손익</div>
             <div className={`text-lg sm:text-xl font-bold ${totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {totalPnl >= 0 ? '+' : '-'}{fmtTotal(Math.abs(totalPnl))}
+              {totalPnl >= 0 ? '+' : '-'}${Math.abs(Math.round(totalPnl)).toLocaleString()}
             </div>
-            <div className={`text-xs ${totalPnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={`text-xs ${totalPnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                ({totalPnl >= 0 ? '+' : '-'}₩{Math.abs(Math.round(totalPnl * usdKrw)).toLocaleString()})
+              </span>
             </div>
           </div>
           <div className={`rounded-xl p-3 sm:p-4 shadow-sm border ${portfolioScore != null ? getScoreBg(portfolioScore) : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
@@ -285,7 +300,6 @@ export default function PortfolioClient({ initialHoldings }: Props) {
             {portfolioScore != null ? (
               <div className={`text-lg sm:text-xl font-bold ${getScoreColor(portfolioScore)}`}>
                 {portfolioScore}점
-                <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ml-1">/{aiScores.length}</span>
               </div>
             ) : (
               <div className="w-20 h-7 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mt-1" />
