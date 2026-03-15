@@ -284,7 +284,8 @@ export default function PortfolioClient({ initialHoldings }: Props) {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">종목</th>
@@ -472,6 +473,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Analysis Panel */}
