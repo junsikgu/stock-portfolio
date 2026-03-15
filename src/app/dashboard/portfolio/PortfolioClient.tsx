@@ -20,6 +20,13 @@ interface AiSummary {
   recommendation: string
 }
 
+interface DividendInfo {
+  annualDivPerShare: number | null
+  dividendYield: number | null      // percentage (e.g., 1.52)
+  nextExDate: string | null
+  hasDividend: boolean
+}
+
 interface NewsItem {
   title: string
   link: string
@@ -65,6 +72,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
   const [adding, setAdding] = useState(false)
   const [showKRW, setShowKRW] = useState(false)
   const [usdKrw, setUsdKrw] = useState<number>(1350)
+  const [dividends, setDividends] = useState<Record<string, DividendInfo | null>>({})
 
   // 편집 상태
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -106,6 +114,21 @@ export default function PortfolioClient({ initialHoldings }: Props) {
           setAnalyses(prev => ({ ...prev, [symbol]: { score: data.score, recommendation: data.recommendation } }))
         }
       } catch {}
+    })
+  }, [holdings])
+
+  // 배당 정보 fetch
+  useEffect(() => {
+    if (holdings.length === 0) return
+    const symbols = [...new Set(holdings.map(h => h.symbol))]
+    symbols.forEach(async (symbol) => {
+      try {
+        const res = await fetch(`/api/stocks/dividend?symbol=${encodeURIComponent(symbol)}`)
+        const data: DividendInfo = await res.json()
+        setDividends(prev => ({ ...prev, [symbol]: data }))
+      } catch {
+        setDividends(prev => ({ ...prev, [symbol]: null }))
+      }
     })
   }, [holdings])
 
@@ -805,6 +828,132 @@ export default function PortfolioClient({ initialHoldings }: Props) {
               </div>
             )
           })()}
+        {/* ─── 배당금 트래커 ─── */}
+        {(() => {
+          const totalAnnualUsd = holdings.reduce((sum, h) => {
+            const d = dividends[h.symbol]
+            if (!d?.hasDividend || !d.annualDivPerShare) return sum
+            return sum + (isKrwStock(h.symbol)
+              ? (d.annualDivPerShare * h.quantity) / usdKrw
+              : d.annualDivPerShare * h.quantity)
+          }, 0)
+
+          const dividendHoldings = holdings.filter(h => dividends[h.symbol]?.hasDividend)
+          const allLoaded = holdings.every(h => dividends[h.symbol] !== undefined)
+
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+              {/* 헤더 */}
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                <span className="text-base">💰</span>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">배당금 트래커</h3>
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium ml-auto">Finnhub</span>
+              </div>
+
+              {/* 총액 요약 */}
+              <div className={`mx-4 mt-4 mb-3 rounded-xl px-4 py-3 flex items-center justify-between gap-3 ${
+                totalAnnualUsd > 0
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800'
+                  : 'bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700'
+              }`}>
+                <div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">예상 연간 배당금 총액</div>
+                  {!allLoaded ? (
+                    <div className="w-32 h-6 bg-gray-200 dark:bg-gray-600 animate-pulse rounded mt-1" />
+                  ) : (
+                    <div className={`text-xl font-bold mt-0.5 ${totalAnnualUsd > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      ${totalAnnualUsd.toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                {allLoaded && totalAnnualUsd > 0 && (
+                  <div className="text-right">
+                    <div className="text-xs text-gray-400 dark:text-gray-500">원화 환산</div>
+                    <div className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                      ₩{Math.round(totalAnnualUsd * usdKrw).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      월 평균 ${(totalAnnualUsd / 12).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 종목별 배당 정보 */}
+              <div className="divide-y divide-gray-50 dark:divide-gray-700/50 pb-2">
+                {holdings.map(h => {
+                  const d = dividends[h.symbol]
+                  const isLoading = d === undefined
+                  const currency = isKrwStock(h.symbol) ? '₩' : '$'
+                  const annualTotal = d?.hasDividend && d.annualDivPerShare
+                    ? d.annualDivPerShare * h.quantity
+                    : null
+
+                  return (
+                    <div key={h.id} className="flex items-center gap-3 px-4 py-3">
+                      {/* 왼쪽: 종목명 */}
+                      <div className="flex-shrink-0 w-16 sm:w-20">
+                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{h.symbol}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{h.quantity}주</div>
+                      </div>
+
+                      {isLoading ? (
+                        <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 animate-pulse rounded" />
+                      ) : !d?.hasDividend ? (
+                        <div className="flex-1 flex items-center">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">배당 없음</span>
+                        </div>
+                      ) : (
+                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                          {/* 수익률 */}
+                          <div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">수익률</div>
+                            <div className="font-semibold text-green-600 dark:text-green-400">
+                              {d.dividendYield != null ? `${d.dividendYield.toFixed(2)}%` : '-'}
+                            </div>
+                          </div>
+                          {/* 주당 배당 */}
+                          <div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">주당 연간</div>
+                            <div className="font-medium text-gray-700 dark:text-gray-200">
+                              {d.annualDivPerShare != null
+                                ? `${currency}${isKrwStock(h.symbol) ? Math.round(d.annualDivPerShare).toLocaleString() : d.annualDivPerShare.toFixed(2)}`
+                                : '-'}
+                            </div>
+                          </div>
+                          {/* 예상 연간 합계 */}
+                          <div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">예상 연간</div>
+                            <div className="font-semibold text-gray-800 dark:text-gray-100">
+                              {annualTotal != null
+                                ? `${currency}${isKrwStock(h.symbol) ? Math.round(annualTotal).toLocaleString() : annualTotal.toFixed(2)}`
+                                : '-'}
+                            </div>
+                          </div>
+                          {/* 다음 배당 기준일 */}
+                          <div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">다음 기준일</div>
+                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                              {d.nextExDate
+                                ? new Date(d.nextExDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+                                : '-'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {allLoaded && dividendHoldings.length === 0 && (
+                <div className="px-4 pb-4 text-center text-sm text-gray-400 dark:text-gray-500">
+                  보유 종목 중 배당금을 지급하는 종목이 없습니다
+                </div>
+              )}
+            </div>
+          )
+        })()}
         </>
       )}
     </div>
