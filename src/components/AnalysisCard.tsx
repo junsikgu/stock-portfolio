@@ -211,11 +211,26 @@ export default function AnalysisCard({ symbol }: Props) {
 
             {geminiText && !geminiLoading && (
               <div className="space-y-3">
-                {geminiText.split('\n').filter(p => p.trim()).map((para, i) => (
-                  <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {para}
-                  </p>
-                ))}
+                {geminiText.split('\n').filter(p => p.trim()).map((para, i) => {
+                  const isConclusion = para.startsWith('종합의견:')
+                  const buySignal = isConclusion && para.includes('매수')
+                  const sellSignal = isConclusion && para.includes('매도')
+                  const holdSignal = isConclusion && para.includes('관망')
+                  return (
+                    <p key={i} className={
+                      isConclusion
+                        ? `text-sm font-bold px-3 py-2 rounded-lg ${
+                            buySignal  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
+                            sellSignal ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' :
+                            holdSignal ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400' :
+                            'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                          }`
+                        : 'text-sm text-gray-700 dark:text-gray-300 leading-relaxed'
+                    }>
+                      {para}
+                    </p>
+                  )
+                })}
               </div>
             )}
           </div>
