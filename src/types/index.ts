@@ -20,6 +20,8 @@ export interface PortfolioHolding {
   name: string
   quantity: number
   avg_price: number
+  target_price?: number | null
+  memo?: string | null
   created_at: string
 }
 

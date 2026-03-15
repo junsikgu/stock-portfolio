@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -53,5 +55,10 @@
   body {
     background-color: #ffffff;
     color: #0f172a;
+  }
+
+  body.dark {
+    background-color: #0f172a;
+    color: #f1f5f9;
   }
 }

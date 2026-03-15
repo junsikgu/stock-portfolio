@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { useTheme } from './ThemeProvider'
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: '📊' },
@@ -16,6 +17,7 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { theme, toggle } = useTheme()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -24,10 +26,10 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <aside className="w-60 bg-white border-r border-gray-200 flex flex-col shadow-sm">
-      <div className="p-5 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-blue-700">주식 AI 분석</h1>
-        <p className="text-xs text-gray-400 mt-1 truncate">{userEmail}</p>
+    <aside className="w-60 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-sm">
+      <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-lg font-bold text-blue-700 dark:text-blue-400">주식 AI 분석</h1>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">{userEmail}</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -38,8 +40,8 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               pathname === item.href
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
             )}
           >
             <span>{item.icon}</span>
@@ -48,10 +50,17 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
+        <button
+          onClick={toggle}
+          className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        >
+          <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? '라이트 모드' : '다크 모드'}
+        </button>
         <button
           onClick={handleLogout}
-          className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+          className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
           <span>🚪</span>
           로그아웃

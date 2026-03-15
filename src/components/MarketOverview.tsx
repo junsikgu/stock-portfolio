@@ -72,13 +72,13 @@ function Tile({ title, value, sub, subColor = 'text-gray-500', loading }: {
   title: string; value: string; sub?: string; subColor?: string; loading: boolean
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-      <div className="text-xs font-medium text-gray-500 mb-1">{title}</div>
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{title}</div>
       {loading ? (
-        <div className="h-7 bg-gray-100 animate-pulse rounded mt-1" />
+        <div className="h-7 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mt-1" />
       ) : (
         <>
-          <div className="text-xl font-bold text-gray-800 leading-tight">{value}</div>
+          <div className="text-xl font-bold text-gray-800 dark:text-gray-100 leading-tight">{value}</div>
           {sub && <div className={`text-xs mt-0.5 ${subColor}`}>{sub}</div>}
         </>
       )}
@@ -102,8 +102,8 @@ export default function MarketOverview() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-600">시장 지표</h2>
-        <span className="text-xs text-gray-400">주식·ETF 실시간 / FRED 일별~분기</span>
+        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">시장 지표</h2>
+        <span className="text-xs text-gray-400 dark:text-gray-500">주식·ETF 실시간 / FRED 일별~분기</span>
       </div>
 
       {/* 시장심리 */}

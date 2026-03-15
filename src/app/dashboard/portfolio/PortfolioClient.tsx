@@ -10,6 +10,8 @@ interface StockQuote {
   price: number
   change: number
   changePercent: number
+  high52?: number
+  low52?: number
 }
 
 interface AiSummary {
@@ -37,6 +39,13 @@ export default function PortfolioClient({ initialHoldings }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
   const [addForm, setAddForm] = useState({ symbol: '', name: '', quantity: '', avg_price: '' })
   const [adding, setAdding] = useState(false)
+
+  // 메모/목표가 편집 상태
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editMemo, setEditMemo] = useState('')
+  const [editTarget, setEditTarget] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const supabase = createClient()
 
   // 시세 fetch
@@ -101,6 +110,26 @@ export default function PortfolioClient({ initialHoldings }: Props) {
     }
   }
 
+  function startEdit(h: PortfolioHolding) {
+    setEditingId(h.id)
+    setEditMemo(h.memo || '')
+    setEditTarget(h.target_price != null ? String(h.target_price) : '')
+  }
+
+  async function saveEdit(id: string) {
+    setSaving(true)
+    const updates: { memo?: string | null; target_price?: number | null } = {
+      memo: editMemo.trim() || null,
+      target_price: editTarget ? parseFloat(editTarget) : null,
+    }
+    const { error } = await supabase.from('portfolio_holdings').update(updates).eq('id', id)
+    if (!error) {
+      setHoldings(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
+    }
+    setSaving(false)
+    setEditingId(null)
+  }
+
   function calcPnl(holding: PortfolioHolding, quote: StockQuote | undefined) {
     if (!quote) return null
     const currentValue = quote.price * holding.quantity
@@ -110,6 +139,14 @@ export default function PortfolioClient({ initialHoldings }: Props) {
     return { pnl, pnlPct, currentValue }
   }
 
+  function calc52wPct(quote: StockQuote | undefined) {
+    if (!quote || !quote.high52 || !quote.low52) return null
+    const range = quote.high52 - quote.low52
+    if (range === 0) return null
+    const pct = ((quote.price - quote.low52) / range) * 100
+    return Math.round(pct)
+  }
+
   const totalCost = holdings.reduce((sum, h) => sum + h.avg_price * h.quantity, 0)
   const totalCurrentValue = holdings.reduce((sum, h) => {
     const q = quotes[h.symbol]
@@ -117,6 +154,22 @@ export default function PortfolioClient({ initialHoldings }: Props) {
   }, 0)
   const totalPnl = totalCurrentValue - totalCost
   const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
+
+  // 포트폴리오 전체 점수 (분석 완료된 종목 평균)
+  const aiScores = holdings.map(h => analyses[h.symbol]?.score).filter((s): s is number => s != null)
+  const portfolioScore = aiScores.length > 0 ? Math.round(aiScores.reduce((a, b) => a + b, 0) / aiScores.length) : null
+
+  function getScoreColor(score: number) {
+    if (score >= 60) return 'text-green-600'
+    if (score >= 40) return 'text-yellow-600'
+    return 'text-red-600'
+  }
+
+  function getScoreBg(score: number) {
+    if (score >= 60) return 'bg-green-50 border-green-100'
+    if (score >= 40) return 'bg-yellow-50 border-yellow-100'
+    return 'bg-red-50 border-red-100'
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -135,7 +188,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
 
       {/* Summary */}
       {holdings.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="text-xs text-gray-500 mb-1">총 평가금액</div>
             <div className="text-xl font-bold text-gray-800">${totalCurrentValue.toFixed(0)}</div>
@@ -149,6 +202,17 @@ export default function PortfolioClient({ initialHoldings }: Props) {
             <div className={`text-xl font-bold ${totalPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(0)} ({totalPnlPct.toFixed(2)}%)
             </div>
+          </div>
+          <div className={`rounded-xl p-4 shadow-sm border ${portfolioScore != null ? getScoreBg(portfolioScore) : 'bg-white border-gray-100'}`}>
+            <div className="text-xs text-gray-500 mb-1">포트폴리오 AI 점수</div>
+            {portfolioScore != null ? (
+              <div className={`text-xl font-bold ${getScoreColor(portfolioScore)}`}>
+                {portfolioScore}점
+                <span className="text-xs font-normal text-gray-500 ml-1">/ {aiScores.length}종목</span>
+              </div>
+            ) : (
+              <div className="w-20 h-7 bg-gray-100 animate-pulse rounded mt-1" />
+            )}
           </div>
         </div>
       )}
@@ -223,6 +287,7 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">종목</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">AI 점수</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">현재가</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">52주</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">수량</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">평균단가</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">평가금액</th>
@@ -236,62 +301,150 @@ export default function PortfolioClient({ initialHoldings }: Props) {
                   const pnlData = calcPnl(h, q)
                   const ai = analyses[h.symbol]
                   const recStyle = ai ? REC_STYLE[ai.recommendation] : null
+                  const w52pct = calc52wPct(q)
+                  const targetPct = h.target_price && q ? ((h.target_price - q.price) / q.price) * 100 : null
+                  const isEditing = editingId === h.id
+
                   return (
-                    <tr
-                      key={h.id}
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${selectedSymbol === h.symbol ? 'bg-blue-50' : ''}`}
-                      onClick={() => setSelectedSymbol(selectedSymbol === h.symbol ? null : h.symbol)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-gray-800 text-sm">{h.symbol}</div>
-                        <div className="text-xs text-gray-400 truncate max-w-32">{h.name}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {recStyle && ai ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-gray-700">{ai.score}</span>
-                            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${recStyle.bg} ${recStyle.text}`}>
-                              {recStyle.label}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="w-16 h-4 bg-gray-100 animate-pulse rounded" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-medium">{q ? `$${q.price.toFixed(2)}` : '-'}</div>
-                        {q && (
-                          <div className={`text-xs ${q.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {q.changePercent >= 0 ? '+' : ''}{q.changePercent?.toFixed(2)}%
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">{h.quantity}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">${h.avg_price.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-medium">
-                        {pnlData ? `$${pnlData.currentValue.toFixed(0)}` : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {pnlData ? (
-                          <div>
-                            <div className={`text-sm font-medium ${pnlData.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {pnlData.pnl >= 0 ? '+' : ''}{pnlData.pnl.toFixed(0)}
+                    <>
+                      <tr
+                        key={h.id}
+                        className={`hover:bg-gray-50 cursor-pointer transition-colors ${selectedSymbol === h.symbol ? 'bg-blue-50' : ''}`}
+                        onClick={() => !isEditing && setSelectedSymbol(selectedSymbol === h.symbol ? null : h.symbol)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-gray-800 text-sm">{h.symbol}</div>
+                          <div className="text-xs text-gray-400 truncate max-w-32">{h.name}</div>
+                          {h.memo && !isEditing && (
+                            <div className="text-xs text-blue-500 truncate max-w-32 mt-0.5">{h.memo}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {recStyle && ai ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-gray-700">{ai.score}</span>
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${recStyle.bg} ${recStyle.text}`}>
+                                {recStyle.label}
+                              </span>
                             </div>
-                            <div className={`text-xs ${pnlData.pnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              ({pnlData.pnlPct >= 0 ? '+' : ''}{pnlData.pnlPct.toFixed(2)}%)
+                          ) : (
+                            <div className="w-16 h-4 bg-gray-100 animate-pulse rounded" />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="text-sm font-medium">{q ? `$${q.price.toFixed(2)}` : '-'}</div>
+                          {q && (
+                            <div className={`text-xs ${q.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {q.changePercent >= 0 ? '+' : ''}{q.changePercent?.toFixed(2)}%
                             </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {w52pct != null ? (
+                            <div>
+                              <div className="text-xs text-gray-500">{w52pct}%</div>
+                              <div className="w-16 h-1.5 bg-gray-200 rounded-full mt-1 ml-auto">
+                                <div
+                                  className={`h-1.5 rounded-full ${w52pct >= 70 ? 'bg-red-400' : w52pct >= 40 ? 'bg-green-400' : 'bg-blue-400'}`}
+                                  style={{ width: `${w52pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600">{h.quantity}</td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600">${h.avg_price.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="text-sm font-medium">{pnlData ? `$${pnlData.currentValue.toFixed(0)}` : '-'}</div>
+                          {h.target_price && q && (
+                            <div className={`text-xs ${targetPct != null && targetPct > 0 ? 'text-blue-500' : 'text-gray-400'}`}>
+                              목표 ${h.target_price} ({targetPct != null ? `${targetPct > 0 ? '+' : ''}${targetPct.toFixed(1)}%` : '-'})
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {pnlData ? (
+                            <div>
+                              <div className={`text-sm font-medium ${pnlData.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {pnlData.pnl >= 0 ? '+' : ''}{pnlData.pnl.toFixed(0)}
+                              </div>
+                              <div className={`text-xs ${pnlData.pnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                ({pnlData.pnlPct >= 0 ? '+' : ''}{pnlData.pnlPct.toFixed(2)}%)
+                              </div>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startEdit(h) }}
+                              className="text-gray-300 hover:text-blue-400 transition-colors text-sm leading-none px-1"
+                              title="메모/목표가 편집"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(h.id) }}
+                              className="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none"
+                            >
+                              ×
+                            </button>
                           </div>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(h.id) }}
-                          className="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none"
-                        >
-                          ×
-                        </button>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+
+                      {/* 메모/목표가 편집 행 */}
+                      {isEditing && (
+                        <tr key={`${h.id}-edit`} className="bg-blue-50">
+                          <td colSpan={9} className="px-4 py-3">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-500 whitespace-nowrap">목표가 $</label>
+                                <input
+                                  type="number"
+                                  value={editTarget}
+                                  onChange={(e) => setEditTarget(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="border border-gray-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="0.00"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 flex-1">
+                                <label className="text-xs text-gray-500 whitespace-nowrap">메모</label>
+                                <input
+                                  type="text"
+                                  value={editMemo}
+                                  onChange={(e) => setEditMemo(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="매수 이유, 목표 등..."
+                                  maxLength={200}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); saveEdit(h.id) }}
+                                  disabled={saving}
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-3 py-1 rounded text-xs font-medium"
+                                >
+                                  {saving ? '저장 중...' : '저장'}
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingId(null) }}
+                                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded text-xs font-medium"
+                                >
+                                  취소
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>

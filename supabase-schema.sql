@@ -16,6 +16,10 @@ CREATE POLICY "Users can only access their own holdings"
   FOR ALL
   USING (auth.uid() = user_id);
 
+-- portfolio_holdings: target_price, memo 컬럼 추가
+ALTER TABLE portfolio_holdings ADD COLUMN IF NOT EXISTS target_price NUMERIC;
+ALTER TABLE portfolio_holdings ADD COLUMN IF NOT EXISTS memo TEXT;
+
 -- watchlist table
 CREATE TABLE IF NOT EXISTS watchlist (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
